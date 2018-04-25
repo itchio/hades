@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/jinzhu/gorm"
+	"crawshaw.io/sqlite"
 	"github.com/pkg/errors"
 )
 
@@ -16,25 +16,16 @@ type PreloadParams struct {
 	Fields []PreloadField
 }
 
-type PreloadCB func(db *gorm.DB) *gorm.DB
-
 type PreloadField struct {
-	Name    string
-	OrderBy string
+	Name   string
+	Search *SearchParams
 }
 
 type Node struct {
 	Name     string
+	Search   *SearchParams
 	Field    PreloadField
 	Children map[string]*Node
-}
-
-func (n *Node) cb(db *gorm.DB) *gorm.DB {
-	f := n.Field
-	if f.OrderBy != "" {
-		db = db.Order(f.OrderBy)
-	}
-	return db
 }
 
 func NewNode(name string) *Node {
@@ -46,11 +37,7 @@ func NewNode(name string) *Node {
 
 func (n *Node) String() string {
 	var res []string
-	var orderByStr string
-	if n.Field.OrderBy != "" {
-		orderByStr = fmt.Sprintf(" ORDER BY %s", n.Field.OrderBy)
-	}
-	res = append(res, fmt.Sprintf("- %s%s", n.Name, orderByStr))
+	res = append(res, fmt.Sprintf("- %s%s", n.Name, n.Search))
 	for _, c := range n.Children {
 		for _, cl := range strings.Split(c.String(), "\n") {
 			res = append(res, "  "+cl)
@@ -78,7 +65,7 @@ func (n *Node) Add(pf PreloadField) {
 	}
 }
 
-func (c *Context) Preload(db *gorm.DB, params *PreloadParams) error {
+func (c *Context) Preload(db *sqlite.Conn, params *PreloadParams) error {
 	rec := params.Record
 	if len(params.Fields) == 0 {
 		return errors.New("Preload expects a non-empty list in Fields")
@@ -148,7 +135,7 @@ func (c *Context) Preload(db *gorm.DB, params *PreloadParams) error {
 				}
 
 				var err error
-				freshAddr, err = c.pagedByKeys(db, cri.Relationship.ForeignDBNames[0], keys, reflect.SliceOf(cri.Type), cvt.cb)
+				freshAddr, err = c.pagedByKeys(db, cri.Relationship.ForeignDBNames[0], keys, reflect.SliceOf(cri.Type), cvt.Search)
 				if err != nil {
 					return errors.Wrap(err, "fetching has_many records (paginated)")
 				}
@@ -181,7 +168,7 @@ func (c *Context) Preload(db *gorm.DB, params *PreloadParams) error {
 				}
 
 				var err error
-				freshAddr, err = c.pagedByKeys(db, cri.Relationship.ForeignDBNames[0], keys, reflect.SliceOf(cri.Type), cvt.cb)
+				freshAddr, err = c.pagedByKeys(db, cri.Relationship.ForeignDBNames[0], keys, reflect.SliceOf(cri.Type), cvt.Search)
 				if err != nil {
 					return errors.Wrap(err, "fetching has_one records (paginated)")
 				}
@@ -209,7 +196,7 @@ func (c *Context) Preload(db *gorm.DB, params *PreloadParams) error {
 				}
 
 				var err error
-				freshAddr, err = c.pagedByKeys(db, cri.Relationship.AssociationForeignDBNames[0], keys, reflect.SliceOf(cri.Type), cvt.cb)
+				freshAddr, err = c.pagedByKeys(db, cri.Relationship.AssociationForeignDBNames[0], keys, reflect.SliceOf(cri.Type), cvt.Search)
 				if err != nil {
 					return errors.Wrap(err, "fetching belongs_to records (paginated)")
 				}

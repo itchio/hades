@@ -4,12 +4,9 @@ import "reflect"
 
 // Scope contain current operation's information when you perform any operation on the database
 type Scope struct {
-	Value           interface{}
-	ctx             *Context
-	primaryKeyField *Field
-	skipLeft        bool
-	fields          *[]*Field
-	selectAttrs     *[]string
+	Value  interface{}
+	ctx    *Context
+	fields *[]*Field
 }
 
 // IndirectValue return scope's reflect value's indirect value
@@ -51,7 +48,7 @@ func (scope *Scope) Fields() []*Field {
 	return *scope.fields
 }
 
-// FieldByName find `gorm.Field` with field name or db name
+// FieldByName find `Field` with field name or db name
 func (scope *Scope) FieldByName(name string) (field *Field, ok bool) {
 	var (
 		dbName           = ToDBName(name)
@@ -126,7 +123,7 @@ func (scope *Scope) HasColumn(column string) bool {
 
 // TableName return table name
 func (scope *Scope) TableName() string {
-	return scope.GetModelStruct().defaultTableName
+	return scope.GetModelStruct().TableName
 }
 
 // Err add error to Scope

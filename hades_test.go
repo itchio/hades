@@ -1,15 +1,15 @@
 package hades_test
 
 import (
+	"context"
 	"testing"
 
+	"crawshaw.io/sqlite"
+	"github.com/go-xorm/builder"
 	"github.com/itchio/hades"
 	"github.com/itchio/wharf/state"
 	"github.com/itchio/wharf/wtest"
 	"github.com/stretchr/testify/assert"
-
-	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/sqlite"
 )
 
 func Test_BelongsTo(t *testing.T) {
@@ -21,31 +21,31 @@ func Test_BelongsTo(t *testing.T) {
 	type Human struct {
 		ID     int64
 		FateID int64
-		Fate   *Fate `gorm:"ignore"`
+		Fate   *Fate `hades:"ignore"`
 	}
 
 	type Joke struct {
 		ID      string
 		HumanID int64
-		Human   *Human `gorm:"ignore"`
+		Human   *Human `hades:"ignore"`
 	}
 
 	models := []interface{}{&Human{}, &Fate{}, &Joke{}}
 
-	withContext(t, models, func(db *gorm.DB, c *hades.Context) {
+	withContext(t, models, func(conn *sqlite.Conn, c *hades.Context) {
 		someFate := &Fate{
 			ID:   123,
 			Desc: "Consumer-grade flamethrowers",
 		}
-		wtest.Must(t, db.Save(someFate).Error)
+		wtest.Must(t, c.SaveOne(conn, someFate))
 
 		lea := &Human{
 			ID:     3,
 			FateID: someFate.ID,
 		}
-		wtest.Must(t, db.Save(lea).Error)
+		wtest.Must(t, c.SaveOne(conn, lea))
 
-		c.Preload(db, &hades.PreloadParams{
+		c.Preload(conn, &hades.PreloadParams{
 			Record: lea,
 			Fields: []hades.PreloadField{
 				{Name: "Fate"},
@@ -55,7 +55,7 @@ func Test_BelongsTo(t *testing.T) {
 		assert.EqualValues(t, someFate.Desc, lea.Fate.Desc)
 	})
 
-	withContext(t, models, func(db *gorm.DB, c *hades.Context) {
+	withContext(t, models, func(conn *sqlite.Conn, c *hades.Context) {
 		lea := &Human{
 			ID: 3,
 			Fate: &Fate{
@@ -63,36 +63,36 @@ func Test_BelongsTo(t *testing.T) {
 				Desc: "Book authorship",
 			},
 		}
-		c.Save(db, &hades.SaveParams{
+		c.Save(conn, &hades.SaveParams{
 			Record: lea,
 			Assocs: []string{"Fate"},
 		})
 
 		fate := &Fate{}
-		wtest.Must(t, db.Where("id = ?", 421).Find(&fate).Error)
+		wtest.Must(t, c.SelectOne(conn, fate, builder.Eq{"id": 421}))
 		assert.EqualValues(t, "Book authorship", fate.Desc)
 	})
 
-	withContext(t, models, func(db *gorm.DB, c *hades.Context) {
+	withContext(t, models, func(conn *sqlite.Conn, c *hades.Context) {
 		fate := &Fate{
 			ID:   3,
 			Desc: "Space rodeo",
 		}
-		wtest.Must(t, db.Save(fate).Error)
+		wtest.Must(t, c.SaveOne(conn, fate))
 
 		human := &Human{
 			ID:     6,
 			FateID: 3,
 		}
-		wtest.Must(t, db.Save(human).Error)
+		wtest.Must(t, c.SaveOne(conn, human))
 
 		joke := &Joke{
 			ID:      "neuf",
 			HumanID: 6,
 		}
-		wtest.Must(t, db.Save(joke).Error)
+		wtest.Must(t, c.SaveOne(conn, joke))
 
-		c.Preload(db, &hades.PreloadParams{
+		c.Preload(conn, &hades.PreloadParams{
 			Record: joke,
 			Fields: []hades.PreloadField{
 				{Name: "Human"},
@@ -126,7 +126,7 @@ func Test_HasOne(t *testing.T) {
 
 	models := []interface{}{&Country{}, &Specialty{}, &Drawback{}}
 
-	withContext(t, models, func(db *gorm.DB, c *hades.Context) {
+	withContext(t, models, func(conn *sqlite.Conn, c *hades.Context) {
 		country := &Country{
 			ID:   324,
 			Desc: "Shmance",
@@ -141,16 +141,17 @@ func Test_HasOne(t *testing.T) {
 		assertCount := func(model interface{}, expectedCount int64) {
 			t.Helper()
 			var count int64
-			wtest.Must(t, db.Model(model).Count(&count).Error)
+			count, err := c.Count(conn, model, builder.NewCond())
+			wtest.Must(t, err)
 			assert.EqualValues(t, expectedCount, count)
 		}
 
-		wtest.Must(t, c.Save(db, &hades.SaveParams{Record: country, Assocs: []string{"Specialty"}}))
+		wtest.Must(t, c.Save(conn, &hades.SaveParams{Record: country, Assocs: []string{"Specialty"}}))
 		assertCount(&Country{}, 0)
 		assertCount(&Specialty{}, 1)
 		assertCount(&Drawback{}, 1)
 
-		wtest.Must(t, c.Save(db, &hades.SaveParams{Record: country}))
+		wtest.Must(t, c.Save(conn, &hades.SaveParams{Record: country}))
 		assertCount(&Country{}, 1)
 		assertCount(&Specialty{}, 1)
 		assertCount(&Drawback{}, 1)
@@ -158,11 +159,11 @@ func Test_HasOne(t *testing.T) {
 		var countries []*Country
 		for i := 0; i < 4; i++ {
 			country := &Country{}
-			wtest.Must(t, db.Find(&country, "id = ?", 324).Error)
+			wtest.Must(t, c.SelectOne(conn, country, builder.Eq{"id": 324}))
 			countries = append(countries, country)
 		}
 
-		wtest.Must(t, c.Preload(db, &hades.PreloadParams{
+		wtest.Must(t, c.Preload(conn, &hades.PreloadParams{
 			Record: countries,
 			Fields: []hades.PreloadField{
 				{Name: "Specialty"},
@@ -185,11 +186,12 @@ func Test_HasMany(t *testing.T) {
 	}
 
 	models := []interface{}{&Quality{}, &Programmer{}}
-	withContext(t, models, func(db *gorm.DB, c *hades.Context) {
+	withContext(t, models, func(conn *sqlite.Conn, c *hades.Context) {
 		assertCount := func(model interface{}, expectedCount int64) {
 			t.Helper()
 			var count int64
-			wtest.Must(t, db.Model(model).Count(&count).Error)
+			count, err := c.Count(conn, model, builder.NewCond())
+			wtest.Must(t, err)
 			assert.EqualValues(t, expectedCount, count)
 		}
 
@@ -201,17 +203,17 @@ func Test_HasMany(t *testing.T) {
 				{ID: 11, Label: "Ability to not repeat oneself"},
 			},
 		}
-		wtest.Must(t, c.Save(db, &hades.SaveParams{Record: p1}))
+		wtest.Must(t, c.Save(conn, &hades.SaveParams{Record: p1}))
 		assertCount(&Programmer{}, 1)
 		assertCount(&Quality{}, 3)
 
 		p1.Qualities[2].Label = "Inspiration again"
-		wtest.Must(t, c.Save(db, &hades.SaveParams{Record: p1}))
+		wtest.Must(t, c.Save(conn, &hades.SaveParams{Record: p1}))
 		assertCount(&Programmer{}, 1)
 		assertCount(&Quality{}, 3)
 		{
 			q := &Quality{}
-			wtest.Must(t, db.Find(q, "id = ?", 11).Error)
+			wtest.Must(t, c.SelectOne(conn, q, builder.Eq{"id": 11}))
 			assert.EqualValues(t, "Inspiration again", q.Label)
 		}
 
@@ -223,7 +225,7 @@ func Test_HasMany(t *testing.T) {
 			},
 		}
 		programmers := []*Programmer{p1, p2}
-		wtest.Must(t, c.Save(db, &hades.SaveParams{Record: programmers}))
+		wtest.Must(t, c.Save(conn, &hades.SaveParams{Record: programmers}))
 		assertCount(&Programmer{}, 2)
 		assertCount(&Quality{}, 5)
 
@@ -234,56 +236,56 @@ func Test_HasMany(t *testing.T) {
 				{Name: "Qualities"},
 			},
 		}
-		wtest.Must(t, c.Preload(db, pp))
+		wtest.Must(t, c.Preload(conn, pp))
 		assert.EqualValues(t, 3, len(p1bis.Qualities), "preload has_many")
 
-		wtest.Must(t, c.Preload(db, pp))
+		wtest.Must(t, c.Preload(conn, pp))
 		assert.EqualValues(t, 3, len(p1bis.Qualities), "preload replaces, doesn't append")
 
 		pp.Fields[0] = hades.PreloadField{
-			Name:    "Qualities",
-			OrderBy: "id asc",
+			Name:   "Qualities",
+			Search: hades.Search().OrderBy("id asc"),
 		}
-		wtest.Must(t, c.Preload(db, pp))
+		wtest.Must(t, c.Preload(conn, pp))
 		assert.EqualValues(t, "Inspiration", p1bis.Qualities[0].Label, "orders by (asc)")
 
 		pp.Fields[0] = hades.PreloadField{
-			Name:    "Qualities",
-			OrderBy: "id desc",
+			Name:   "Qualities",
+			Search: hades.Search().OrderBy("id desc"),
 		}
-		wtest.Must(t, c.Preload(db, pp))
+		wtest.Must(t, c.Preload(conn, pp))
 		assert.EqualValues(t, "Inspiration again", p1bis.Qualities[0].Label, "orders by (desc)")
 
 		// no fields
-		assert.Error(t, c.Preload(db, &hades.PreloadParams{Record: p1bis}))
+		assert.Error(t, c.Preload(conn, &hades.PreloadParams{Record: p1bis}))
 
 		// not a model
-		assert.Error(t, c.Preload(db, &hades.PreloadParams{Record: 42, Fields: pp.Fields}))
+		assert.Error(t, c.Preload(conn, &hades.PreloadParams{Record: 42, Fields: pp.Fields}))
 
 		// non-existent relation
-		assert.Error(t, c.Preload(db, &hades.PreloadParams{Record: p1bis, Fields: []hades.PreloadField{{Name: "Woops"}}}))
+		assert.Error(t, c.Preload(conn, &hades.PreloadParams{Record: p1bis, Fields: []hades.PreloadField{{Name: "Woops"}}}))
 	})
 }
 
 type Language struct {
 	ID    int64
-	Words []*Word `gorm:"many2many:language_words"`
+	Words []*Word `hades:"many2many:language_words"`
 }
 
 type Word struct {
 	ID        string
 	Comment   string
-	Languages []*Language `gorm:"many2many:language_words"`
+	Languages []*Language `hades:"many2many:language_words"`
 }
 
 type LanguageWord struct {
-	LanguageID int64  `gorm:"primary_key;auto_increment:false"`
-	WordID     string `gorm:"primary_key;auto_increment:false"`
+	LanguageID int64  `hades:"primary_key;auto_increment:false"`
+	WordID     string `hades:"primary_key;auto_increment:false"`
 }
 
 func Test_ManyToMany(t *testing.T) {
 	models := []interface{}{&Language{}, &Word{}, &LanguageWord{}}
-	withContext(t, models, func(db *gorm.DB, c *hades.Context) {
+	withContext(t, models, func(conn *sqlite.Conn, c *hades.Context) {
 		fr := &Language{
 			ID: 123,
 			Words: []*Word{
@@ -292,14 +294,15 @@ func Test_ManyToMany(t *testing.T) {
 			},
 		}
 		t.Logf("saving just fr")
-		wtest.Must(t, c.Save(db, &hades.SaveParams{
+		wtest.Must(t, c.Save(conn, &hades.SaveParams{
 			Record: fr,
 		}))
 
 		assertCount := func(model interface{}, expectedCount int64) {
 			t.Helper()
 			var count int64
-			wtest.Must(t, db.Model(model).Count(&count).Error)
+			count, err := c.Count(conn, model, builder.NewCond())
+			wtest.Must(t, err)
 			assert.EqualValues(t, expectedCount, count)
 		}
 		assertCount(&Language{}, 1)
@@ -314,7 +317,7 @@ func Test_ManyToMany(t *testing.T) {
 			},
 		}
 		t.Logf("saving fr+en")
-		wtest.Must(t, c.Save(db, &hades.SaveParams{
+		wtest.Must(t, c.Save(conn, &hades.SaveParams{
 			Record: []*Language{fr, en},
 		}))
 
@@ -327,7 +330,7 @@ func Test_ManyToMany(t *testing.T) {
 			{ID: "Wreck"},
 			{ID: "Nervous"},
 		}
-		wtest.Must(t, c.Save(db, &hades.SaveParams{
+		wtest.Must(t, c.Save(conn, &hades.SaveParams{
 			Record:       []*Language{en},
 			PartialJoins: []string{"LanguageWords"},
 		}))
@@ -337,7 +340,7 @@ func Test_ManyToMany(t *testing.T) {
 		assertCount(&LanguageWord{}, 6)
 
 		t.Logf("replacing all english words")
-		wtest.Must(t, c.Save(db, &hades.SaveParams{
+		wtest.Must(t, c.Save(conn, &hades.SaveParams{
 			Record: []*Language{en},
 		}))
 
@@ -347,7 +350,7 @@ func Test_ManyToMany(t *testing.T) {
 
 		t.Logf("adding commentary")
 		en.Words[0].Comment = "punk band reference"
-		wtest.Must(t, c.Save(db, &hades.SaveParams{
+		wtest.Must(t, c.Save(conn, &hades.SaveParams{
 			Record: []*Language{en},
 		}))
 
@@ -357,7 +360,7 @@ func Test_ManyToMany(t *testing.T) {
 
 		{
 			w := &Word{}
-			wtest.Must(t, db.Find(w, "id = ?", "Wreck").Error)
+			wtest.Must(t, c.SelectOne(conn, w, builder.Eq{"id": "Wreck"}))
 			assert.EqualValues(t, "punk band reference", w.Comment)
 		}
 
@@ -365,7 +368,7 @@ func Test_ManyToMany(t *testing.T) {
 			{ID: fr.ID},
 			{ID: en.ID},
 		}
-		err := c.Preload(db, &hades.PreloadParams{
+		err := c.Preload(conn, &hades.PreloadParams{
 			Record: langs,
 			Fields: []hades.PreloadField{
 				{Name: "Words"},
@@ -387,10 +390,10 @@ type Game struct {
 }
 
 type ProfileGame struct {
-	ProfileID int64 `gorm:"primary_key;auto_increment:false"`
+	ProfileID int64 `hades:"primary_key;auto_increment:false"`
 	Profile   *Profile
 
-	GameID int64 `gorm:"primary_key;auto_increment:false"`
+	GameID int64 `hades:"primary_key;auto_increment:false"`
 	Game   *Game
 
 	Order int64
@@ -399,7 +402,7 @@ type ProfileGame struct {
 func Test_ManyToManyRevenge(t *testing.T) {
 	models := []interface{}{&Profile{}, &ProfileGame{}, &Game{}}
 
-	withContext(t, models, func(db *gorm.DB, c *hades.Context) {
+	withContext(t, models, func(conn *sqlite.Conn, c *hades.Context) {
 		makeProfile := func() *Profile {
 			return &Profile{
 				ID: 389,
@@ -429,7 +432,7 @@ func Test_ManyToManyRevenge(t *testing.T) {
 			}
 		}
 		p := makeProfile()
-		c.Save(db, &hades.SaveParams{
+		c.Save(conn, &hades.SaveParams{
 			Record: p,
 		})
 	})
@@ -448,10 +451,10 @@ func Test_PreloadEdgeCases(t *testing.T) {
 
 	models := []interface{}{&Foo{}, &Bar{}}
 
-	withContext(t, models, func(db *gorm.DB, c *hades.Context) {
+	withContext(t, models, func(conn *sqlite.Conn, c *hades.Context) {
 		// non-existent Bar
 		f := &Foo{ID: 1, BarID: 999}
-		wtest.Must(t, c.Preload(db, &hades.PreloadParams{
+		wtest.Must(t, c.Preload(conn, &hades.PreloadParams{
 			Record: f,
 			Fields: []hades.PreloadField{
 				{Name: "Bar"},
@@ -460,7 +463,7 @@ func Test_PreloadEdgeCases(t *testing.T) {
 
 		// empty slice
 		var foos []*Foo
-		wtest.Must(t, c.Preload(db, &hades.PreloadParams{
+		wtest.Must(t, c.Preload(conn, &hades.PreloadParams{
 			Record: foos,
 			Fields: []hades.PreloadField{
 				{Name: "Bar"},
@@ -477,26 +480,20 @@ func makeConsumer(t *testing.T) *state.Consumer {
 	}
 }
 
-type testlogger struct {
-	*testing.T
-}
-
-func (tl testlogger) Println(values ...interface{}) {
-	tl.T.Log(values...)
-}
-
-type WithContextFunc func(db *gorm.DB, c *hades.Context)
+type WithContextFunc func(conn *sqlite.Conn, c *hades.Context)
 
 func withContext(t *testing.T, models []interface{}, f WithContextFunc) {
-	db, err := gorm.Open("sqlite3", ":memory:")
+	dbpool, err := sqlite.Open("file:memory:?mode=memory", 0, 10)
 	wtest.Must(t, err)
 
-	db.LogMode(true)
-	db.SetLogger(gorm.Logger{testlogger{t}})
-	defer db.Close()
+	conn := dbpool.Get(context.Background().Done())
+	defer dbpool.Put(conn)
 
-	wtest.Must(t, db.AutoMigrate(models...).Error)
+	// whoops, automigrate
+	// wtest.Must(t, conn.AutoMigrate(models...).Error)
 
-	c := hades.NewContext(db, models, makeConsumer(t))
-	f(db, c)
+	c, err := hades.NewContext(makeConsumer(t), models...)
+	wtest.Must(t, err)
+
+	f(conn, c)
 }

@@ -6,14 +6,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jinzhu/gorm"
-
 	"github.com/pkg/errors"
 )
 
 type ChangedFields map[string]interface{}
 
-func DiffRecord(x, y interface{}, scope *gorm.Scope) (ChangedFields, error) {
+func DiffRecord(x, y interface{}, scope *Scope) (ChangedFields, error) {
 	if x == nil || y == nil {
 		return nil, errors.New("DiffRecord: arguments must not be nil")
 	}

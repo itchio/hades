@@ -36,10 +36,10 @@ var modelStructsMap = newModelStructsMap()
 
 // ModelStruct model definition
 type ModelStruct struct {
-	PrimaryFields    []*StructField
-	StructFields     []*StructField
-	ModelType        reflect.Type
-	defaultTableName string
+	PrimaryFields []*StructField
+	StructFields  []*StructField
+	ModelType     reflect.Type
+	TableName     string
 }
 
 // StructField model field's struct definition
@@ -132,7 +132,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 		return value
 	}
 
-	modelStruct.defaultTableName = TableName(reflectType)
+	modelStruct.TableName = TableName(reflectType)
 	modelStruct.ModelType = reflectType
 
 	// Get all fields
@@ -590,7 +590,7 @@ func (scope *Scope) GetStructFields() (fields []*StructField) {
 
 func parseTagSetting(tags reflect.StructTag) map[string]string {
 	setting := map[string]string{}
-	for _, str := range []string{tags.Get("sql"), tags.Get("gorm")} {
+	for _, str := range []string{tags.Get("hades")} {
 		tags := strings.Split(str, ";")
 		for _, value := range tags {
 			v := strings.Split(value, ":")

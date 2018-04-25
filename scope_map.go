@@ -1,6 +1,7 @@
 package hades
 
 import (
+	"fmt"
 	"reflect"
 
 	"github.com/pkg/errors"
@@ -19,10 +20,20 @@ func NewScopeMap() *ScopeMap {
 }
 
 func (sm *ScopeMap) Add(c *Context, m interface{}) error {
-	reflectType := reflect.ValueOf(m).Type()
-	for reflectType.Kind() == reflect.Slice || reflectType.Kind() == reflect.Ptr {
-		reflectType = reflectType.Elem()
+	val := reflect.ValueOf(m)
+	fmt.Printf("val = %v, type = %v\n", val, val.Type())
+
+	if val.Type().Kind() == reflect.Ptr {
+		val = val.Elem()
+		fmt.Printf("was ptr, now val = %v, type = %v\n", val, val.Type())
 	}
+
+	if val.Type().Kind() == reflect.Interface {
+		val = val.Elem()
+		fmt.Printf("was interface, now val = %v, type = %v\n", val, val.Type())
+	}
+
+	reflectType := val.Type()
 
 	// what should we do if it's not a struct?
 	if reflectType.Kind() != reflect.Struct {
@@ -30,7 +41,7 @@ func (sm *ScopeMap) Add(c *Context, m interface{}) error {
 	}
 
 	s := c.NewScope(m)
-	sm.byType[reflectType] = s
+	sm.byType[reflect.PtrTo(reflectType)] = s
 	sm.byDBName[s.TableName()] = s
 	return nil
 }

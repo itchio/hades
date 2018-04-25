@@ -23,6 +23,12 @@ type SaveParams struct {
 	PartialJoins []string
 }
 
+func (c *Context) SaveOne(conn *sqlite.Conn, record interface{}) (err error) {
+	return c.SaveNoTransaction(conn, &SaveParams{
+		Record: record,
+	})
+}
+
 func (c *Context) Save(conn *sqlite.Conn, params *SaveParams) (err error) {
 	defer sqliteutil.Save(conn)(&err)
 

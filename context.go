@@ -9,6 +9,7 @@ type Context struct {
 	Consumer *state.Consumer
 	Stats    Stats
 	Error    error
+	Log      bool
 }
 
 type Stats struct {

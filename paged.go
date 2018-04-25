@@ -1,27 +1,26 @@
 package hades
 
 import (
-	"fmt"
 	"reflect"
 
-	"github.com/jinzhu/gorm"
+	"crawshaw.io/sqlite"
+	"github.com/go-xorm/builder"
 	"github.com/pkg/errors"
 )
 
 const maxSqlVars = 900
 
-type DBCB func(db *gorm.DB) *gorm.DB
+type QueryFn func(query string) string
 
 // retrieve cached items in a []*SomeModel
 // for some reason, reflect.New returns a &[]*SomeModel instead,
 // I'm guessing slices can't be interfaces, but pointers to slices can?
-func (c *Context) pagedByKeys(tx *gorm.DB, keyFieldName string, keys []interface{}, sliceType reflect.Type, cb DBCB) (reflect.Value, error) {
+func (c *Context) pagedByKeys(conn *sqlite.Conn, keyFieldName string, keys []interface{}, sliceType reflect.Type, search *SearchParams) (reflect.Value, error) {
 	// actually defaults to 999, but let's get some breathing room
 	result := reflect.New(sliceType)
 	resultVal := result.Elem()
 
 	remainingItems := keys
-	query := fmt.Sprintf("%s in (?)", keyFieldName)
 
 	for len(remainingItems) > 0 {
 		var pageSize int
@@ -32,12 +31,9 @@ func (c *Context) pagedByKeys(tx *gorm.DB, keyFieldName string, keys []interface
 		}
 
 		pageAddr := reflect.New(sliceType)
-		req := tx.Where(query, remainingItems[:pageSize])
-		if cb != nil {
-			req = cb(req)
-		}
+		cond := builder.In(keyFieldName, remainingItems[:pageSize]...)
 
-		err := req.Find(pageAddr.Interface()).Error
+		err := c.Select(conn, pageAddr.Interface(), cond, search)
 		if err != nil {
 			return result, errors.Wrap(err, "performing page fetch")
 		}
