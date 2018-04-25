@@ -1,28 +1,14 @@
 package hades
 
 import (
-	"reflect"
-
 	"github.com/itchio/wharf/state"
-	"github.com/jinzhu/gorm"
-	"github.com/pkg/errors"
 )
 
-type ScopeMap map[reflect.Type]*gorm.Scope
-
-func (sm ScopeMap) ByDBName(dbName string) *gorm.Scope {
-	for _, s := range sm {
-		if s.TableName() == dbName {
-			return s
-		}
-	}
-	return nil
-}
-
 type Context struct {
+	ScopeMap *ScopeMap
 	Consumer *state.Consumer
-	ScopeMap ScopeMap
 	Stats    Stats
+	Error    error
 }
 
 type Stats struct {
@@ -32,35 +18,32 @@ type Stats struct {
 	Current int64
 }
 
-func NewContext(db *gorm.DB, models []interface{}, consumer *state.Consumer) *Context {
-	scopeMap := make(ScopeMap)
-	for _, m := range models {
-		mtyp := reflect.TypeOf(m)
-		scopeMap[mtyp] = db.NewScope(m)
-	}
-
+func NewContext(consumer *state.Consumer, models ...interface{}) (*Context, error) {
 	if consumer == nil {
 		consumer = &state.Consumer{}
 	}
-
-	return &Context{
+	c := &Context{
 		Consumer: consumer,
-		ScopeMap: scopeMap,
+		ScopeMap: NewScopeMap(),
+	}
+
+	for _, m := range models {
+		err := c.ScopeMap.Add(c, m)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return c, nil
+}
+
+func (c *Context) NewScope(value interface{}) *Scope {
+	return &Scope{
+		Value: value,
+		ctx:   c,
 	}
 }
 
-type InTransactionFunc func(c *Context, tx *gorm.DB) error
-
-func (c *Context) InTransaction(db *gorm.DB, itf InTransactionFunc) error {
-	tx := db.Begin()
-
-	err := itf(c, tx)
-	if err != nil {
-		tx.Rollback()
-		return errors.Wrap(err, "in db transaction")
-	} else {
-		tx.Commit()
-	}
-
-	return nil
+func (c *Context) AddError(err error) {
+	c.Error = err
 }

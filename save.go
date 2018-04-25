@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/jinzhu/gorm"
+	"crawshaw.io/sqlite"
+	"crawshaw.io/sqlite/sqliteutil"
 	"github.com/pkg/errors"
 )
 
@@ -22,13 +23,13 @@ type SaveParams struct {
 	PartialJoins []string
 }
 
-func (c *Context) Save(db *gorm.DB, params *SaveParams) error {
-	return c.InTransaction(db, func(c *Context, tx *gorm.DB) error {
-		return c.SaveNoTransaction(tx, params)
-	})
+func (c *Context) Save(conn *sqlite.Conn, params *SaveParams) (err error) {
+	defer sqliteutil.Save(conn)(&err)
+
+	return c.SaveNoTransaction(conn, params)
 }
 
-func (c *Context) SaveNoTransaction(tx *gorm.DB, params *SaveParams) error {
+func (c *Context) SaveNoTransaction(conn *sqlite.Conn, params *SaveParams) error {
 	if params == nil {
 		return errors.New("Save: params cannot be nil")
 	}
@@ -53,9 +54,6 @@ func (c *Context) SaveNoTransaction(tx *gorm.DB, params *SaveParams) error {
 	entities := make(AllEntities)
 	addEntity := func(v reflect.Value) error {
 		typ := v.Type()
-		if _, ok := c.ScopeMap[typ]; !ok {
-			return fmt.Errorf("not a model type: %s", typ)
-		}
 		entities[typ] = append(entities[typ], v.Interface())
 		return nil
 	}
@@ -177,7 +175,7 @@ func (c *Context) SaveNoTransaction(tx *gorm.DB, params *SaveParams) error {
 	}
 
 	for _, m := range entities {
-		err := c.saveRows(tx, params, m)
+		err := c.saveRows(conn, params, m)
 		if err != nil {
 			return errors.Wrap(err, "saving rows")
 		}
@@ -185,7 +183,7 @@ func (c *Context) SaveNoTransaction(tx *gorm.DB, params *SaveParams) error {
 
 	for _, ri := range riMap {
 		if ri.ManyToMany != nil {
-			err := c.saveJoins(params, tx, ri.ManyToMany)
+			err := c.saveJoins(params, conn, ri.ManyToMany)
 			if err != nil {
 				return errors.Wrap(err, "saving joins")
 			}

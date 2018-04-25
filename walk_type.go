@@ -5,7 +5,6 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
 )
 
@@ -15,7 +14,7 @@ type JoinRec struct {
 }
 
 type ManyToMany struct {
-	Scope *gorm.Scope
+	Scope *Scope
 
 	JoinTable string
 
@@ -33,7 +32,7 @@ type ManyToMany struct {
 	Values map[interface{}][]JoinRec
 }
 
-func (c *Context) NewManyToMany(JoinTable string, SourceForeignKeys, DestinationForeignKeys []gorm.JoinTableForeignKey) (*ManyToMany, error) {
+func (c *Context) NewManyToMany(JoinTable string, SourceForeignKeys, DestinationForeignKeys []JoinTableForeignKey) (*ManyToMany, error) {
 	scope := c.ScopeMap.ByDBName(JoinTable)
 	if scope == nil {
 		return nil, fmt.Errorf("Could not find model struct for %s: list it explicitly in Models", JoinTable)
@@ -103,9 +102,9 @@ type RecordInfo struct {
 	Name         string
 	Type         reflect.Type
 	Children     []*RecordInfo
-	Relationship *gorm.Relationship
+	Relationship *Relationship
 	ManyToMany   *ManyToMany
-	ModelStruct  *gorm.ModelStruct
+	ModelStruct  *ModelStruct
 }
 
 func (ri *RecordInfo) String() string {
@@ -119,9 +118,9 @@ func (ri *RecordInfo) String() string {
 	return strings.Join(lines, "\n")
 }
 
-type VisitMap map[*gorm.ModelStruct]bool
+type VisitMap map[*ModelStruct]bool
 
-func (vm VisitMap) CopyAndMark(ms *gorm.ModelStruct) VisitMap {
+func (vm VisitMap) CopyAndMark(ms *ModelStruct) VisitMap {
 	vv := make(VisitMap)
 	for k, v := range vm {
 		vv[k] = v
@@ -140,7 +139,7 @@ func (c *Context) WalkType(riMap RecordInfoMap, name string, atyp reflect.Type, 
 		return nil, fmt.Errorf("WalkType expects a *Model type, got %v", atyp)
 	}
 
-	scope := c.ScopeMap[atyp]
+	scope := c.ScopeMap.ByType(atyp)
 	if scope == nil {
 		return nil, fmt.Errorf("WalkType expects a *Model but %v is not a registered model type", atyp)
 	}
@@ -157,7 +156,7 @@ func (c *Context) WalkType(riMap RecordInfoMap, name string, atyp reflect.Type, 
 		ModelStruct: ms,
 	}
 
-	visitField := func(sf *gorm.StructField, explicit bool) error {
+	visitField := func(sf *StructField, explicit bool) error {
 		if sf.Relationship == nil {
 			if explicit {
 				return fmt.Errorf("%s.%s does not describe a relationship", ms.ModelType.Name(), sf.Name)
@@ -173,7 +172,7 @@ func (c *Context) WalkType(riMap RecordInfoMap, name string, atyp reflect.Type, 
 			return fmt.Errorf("visitField expects a Slice of Ptr, or a Ptr, but got %v", sf.Struct.Type)
 		}
 
-		if _, ok := c.ScopeMap[fieldTyp]; !ok {
+		if c.ScopeMap.ByType(fieldTyp) != nil {
 			if explicit {
 				return fmt.Errorf("%s.%s is not an explicitly listed model (%v)", ms.ModelType.Name(), sf.Name, fieldTyp)
 			}
@@ -193,7 +192,7 @@ func (c *Context) WalkType(riMap RecordInfoMap, name string, atyp reflect.Type, 
 
 		if sf.Relationship.Kind == "many_to_many" {
 			jth := sf.Relationship.JoinTableHandler
-			djth, ok := jth.(*gorm.JoinTableHandler)
+			djth, ok := jth.(*JoinTableHandler)
 			if !ok {
 				return errors.Errorf("Expected sf.Relationship.JoinTableHandler to be the default JoinTableHandler type, but it's %v", reflect.TypeOf(jth))
 			}
@@ -210,7 +209,7 @@ func (c *Context) WalkType(riMap RecordInfoMap, name string, atyp reflect.Type, 
 	}
 
 	if len(assocs) > 0 {
-		sfByName := make(map[string]*gorm.StructField)
+		sfByName := make(map[string]*StructField)
 		for _, sf := range ms.StructFields {
 			sfByName[sf.Name] = sf
 		}
