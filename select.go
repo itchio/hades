@@ -11,6 +11,9 @@ func (c *Context) Select(conn *sqlite.Conn, result interface{}, cond builder.Con
 	var columns []string
 	ms := c.NewScope(result).GetModelStruct()
 	for _, sf := range ms.StructFields {
+		if sf.Relationship != nil {
+			continue
+		}
 		columns = append(columns, sf.DBName)
 	}
 

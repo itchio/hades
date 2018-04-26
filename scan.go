@@ -9,15 +9,13 @@ import (
 
 func (c *Context) Scan(stmt *sqlite.Stmt, columns []string, result reflect.Value) error {
 	for i, c := range columns {
+		// FIXME: that's bad/slow
 		fieldName := FromDBName(c)
 		field := result.FieldByName(fieldName)
 
 		switch field.Type().Kind() {
 		case reflect.Int64:
-		case reflect.Int32:
-		case reflect.Int:
 			field.SetInt(stmt.ColumnInt64(i))
-		case reflect.Float32:
 		case reflect.Float64:
 			field.SetFloat(stmt.ColumnFloat(i))
 		case reflect.Bool:

@@ -1,7 +1,6 @@
 package hades
 
 import (
-	"fmt"
 	"reflect"
 
 	"github.com/pkg/errors"
@@ -21,16 +20,13 @@ func NewScopeMap() *ScopeMap {
 
 func (sm *ScopeMap) Add(c *Context, m interface{}) error {
 	val := reflect.ValueOf(m)
-	fmt.Printf("val = %v, type = %v\n", val, val.Type())
 
 	if val.Type().Kind() == reflect.Ptr {
 		val = val.Elem()
-		fmt.Printf("was ptr, now val = %v, type = %v\n", val, val.Type())
 	}
 
 	if val.Type().Kind() == reflect.Interface {
 		val = val.Elem()
-		fmt.Printf("was interface, now val = %v, type = %v\n", val, val.Type())
 	}
 
 	reflectType := val.Type()

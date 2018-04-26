@@ -20,13 +20,16 @@ func (scope *Scope) ToEq(rec reflect.Value) builder.Eq {
 
 	eq := make(builder.Eq)
 	for _, sf := range scope.GetModelStruct().StructFields {
+		if sf.Relationship != nil {
+			// TODO: set IDs here?
+			continue
+		}
 		eq[sf.DBName] = recEl.FieldByName(sf.Name).Interface()
 	}
 	return eq
 }
 
-func (c *Context) Insert(conn *sqlite.Conn, rec reflect.Value) error {
-	scope := c.NewScope(rec)
+func (c *Context) Insert(conn *sqlite.Conn, scope *Scope, rec reflect.Value) error {
 	eq := scope.ToEq(rec)
 	return c.Exec(conn, builder.Insert(eq).Into(scope.TableName()), nil)
 }

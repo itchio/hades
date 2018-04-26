@@ -172,7 +172,7 @@ func (c *Context) WalkType(riMap RecordInfoMap, name string, atyp reflect.Type, 
 			return fmt.Errorf("visitField expects a Slice of Ptr, or a Ptr, but got %v", sf.Struct.Type)
 		}
 
-		if c.ScopeMap.ByType(fieldTyp) != nil {
+		if c.ScopeMap.ByType(fieldTyp) == nil {
 			if explicit {
 				return fmt.Errorf("%s.%s is not an explicitly listed model (%v)", ms.ModelType.Name(), sf.Name, fieldTyp)
 			}

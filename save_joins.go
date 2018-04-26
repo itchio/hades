@@ -105,7 +105,7 @@ func (c *Context) saveJoins(params *SaveParams, conn *sqlite.Conn, mtm *ManyToMa
 			}
 
 			// FIXME: that's slow/bad because of ToEq
-			err := c.Insert(conn, rec)
+			err := c.Insert(conn, mtm.Scope, rec)
 			if err != nil {
 				return errors.Wrap(err, "creating new relation records")
 			}

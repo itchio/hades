@@ -37,14 +37,17 @@ func Test_BelongsTo(t *testing.T) {
 			ID:   123,
 			Desc: "Consumer-grade flamethrowers",
 		}
+		t.Log("Saving one fate")
 		wtest.Must(t, c.SaveOne(conn, someFate))
 
 		lea := &Human{
 			ID:     3,
 			FateID: someFate.ID,
 		}
+		t.Log("Saving one human")
 		wtest.Must(t, c.SaveOne(conn, lea))
 
+		t.Log("Preloading lea")
 		c.Preload(conn, &hades.PreloadParams{
 			Record: lea,
 			Fields: []hades.PreloadField{
@@ -489,11 +492,11 @@ func withContext(t *testing.T, models []interface{}, f WithContextFunc) {
 	conn := dbpool.Get(context.Background().Done())
 	defer dbpool.Put(conn)
 
-	// whoops, automigrate
-	// wtest.Must(t, conn.AutoMigrate(models...).Error)
-
 	c, err := hades.NewContext(makeConsumer(t), models...)
 	wtest.Must(t, err)
+	c.Log = true
+
+	wtest.Must(t, c.AutoMigrate(conn))
 
 	f(conn, c)
 }
