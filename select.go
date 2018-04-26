@@ -43,6 +43,9 @@ func (c *Context) SelectOne(conn *sqlite.Conn, result interface{}, cond builder.
 	var columns []string
 	ms := c.NewScope(result).GetModelStruct()
 	for _, sf := range ms.StructFields {
+		if sf.Relationship != nil {
+			continue
+		}
 		columns = append(columns, sf.DBName)
 	}
 
