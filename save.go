@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/go-xorm/builder"
+
 	"crawshaw.io/sqlite"
 	"crawshaw.io/sqlite/sqliteutil"
 	"github.com/pkg/errors"
@@ -19,8 +21,8 @@ type SaveParams struct {
 	// Fields to save instead of the top-level record
 	Assocs []string
 
-	// Disable deleting join table entries (useful for partial data)
-	PartialJoins []string
+	// For has_many and many_to_many, never delete rows for these models
+	DontCull []interface{}
 }
 
 func (c *Context) SaveOne(conn *sqlite.Conn, record interface{}) (err error) {
@@ -159,10 +161,81 @@ func (c *Context) SaveNoTransaction(conn *sqlite.Conn, params *SaveParams) error
 
 	walk = func(p reflect.Value, pri *RecordInfo, v reflect.Value, vri *RecordInfo, persist bool) error {
 		if v.Kind() == reflect.Slice {
+			cull := false
+
+			if vri.Relationship != nil && vri.Relationship.Kind == "has_many" {
+				cull = true
+				for _, dc := range params.DontCull {
+					if reflect.TypeOf(dc).Elem() == vri.ModelStruct.ModelType {
+						cull = false
+					}
+				}
+			}
+
 			for i := 0; i < v.Len(); i++ {
 				err := visit(p, pri, v.Index(i), vri, persist)
 				if err != nil {
 					return errors.Wrap(err, "walking slice of children")
+				}
+			}
+
+			if cull {
+				var oldValuePKs []string
+				rel := vri.Relationship
+
+				parentPF := c.NewScope(p.Interface()).PrimaryField()
+				if parentPF == nil {
+					return errors.Errorf("Can't save %v has_many %v: parent has no primary keys", pri.Type, vri.Type)
+				}
+				parentPK := parentPF.Field
+
+				if len(vri.ModelStruct.PrimaryFields) != 1 {
+					return errors.Errorf("Since %v has_many %v", pri.Name, vri.Name)
+				}
+				valuePF := c.NewScope(v.Interface()).PrimaryField()
+				if valuePF == nil {
+					return errors.Errorf("Can't save %v has_many %v: value has no primary keys", pri.Type, vri.Type)
+				}
+
+				q := builder.Select(rel.AssociationForeignDBNames[0]).
+					From(vri.ModelStruct.TableName).
+					Where(builder.Eq{
+						rel.ForeignDBNames[0]: parentPK,
+					})
+
+				err = c.Exec(conn, q, func(stmt *sqlite.Stmt) error {
+					pk := stmt.ColumnText(0)
+					oldValuePKs = append(oldValuePKs, pk)
+					return nil
+				})
+				if err != nil {
+					return err
+				}
+
+				if len(oldValuePKs) > 0 {
+					var newValuePKs []string
+					for i := 0; i < v.Len(); i++ {
+						newValuePKs = append(newValuePKs, c.NewScope(v.Index(i).Interface()).PrimaryField().Field.String())
+					}
+
+					var newValuePKsMap = make(map[string]struct{})
+					for _, pk := range newValuePKs {
+						newValuePKsMap[pk] = struct{}{}
+					}
+
+					var vpksToDelete []interface{}
+					for _, pk := range oldValuePKs {
+						if _, ok := newValuePKsMap[pk]; !ok {
+							vpksToDelete = append(vpksToDelete, pk)
+						}
+					}
+
+					if len(vpksToDelete) > 0 {
+						err := c.deletePagedByPK(conn, vri.ModelStruct.TableName, valuePF.DBName, vpksToDelete)
+						if err != nil {
+							return err
+						}
+					}
 				}
 			}
 		} else {

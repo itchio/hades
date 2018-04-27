@@ -6,7 +6,7 @@
 [![GoDoc](https://godoc.org/github.com/itchio/hades?status.svg)](https://godoc.org/github.com/itchio/hades)
 [![MIT licensed](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/itchio/hades/blob/master/LICENSE)
 
-hades is a persistent layer based on sqlite.
+hades is a persistence layer based on SQLite.
 
 ## License
 

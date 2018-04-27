@@ -9,10 +9,11 @@ import (
 )
 
 func (c *Context) saveJoins(params *SaveParams, conn *sqlite.Conn, mtm *ManyToMany) error {
-	partial := false
-	for _, pj := range params.PartialJoins {
-		if mtm.JoinTable == ToDBName(pj) {
-			partial = true
+	cull := true
+	for _, dc := range params.DontCull {
+		if mtm.JoinTable == ToDBName(c.NewScope(dc).TableName()) {
+			cull = false
+			break
 		}
 	}
 
@@ -77,7 +78,7 @@ func (c *Context) saveJoins(params *SaveParams, conn *sqlite.Conn, mtm *ManyToMa
 			}
 		}
 
-		if partial {
+		if !cull {
 			// Not deleting extra join records, as requested
 		} else {
 			if len(deletes) > 0 {

@@ -20,6 +20,8 @@ func (c *Context) Exec(conn *sqlite.Conn, b *builder.Builder, resultFn ResultFn)
 }
 
 func (c *Context) ExecRaw(conn *sqlite.Conn, query string, resultFn ResultFn, args ...interface{}) error {
+	c.QueryCount++
+
 	var startTime time.Time
 	if c.Log {
 		startTime = time.Now()

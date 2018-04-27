@@ -328,14 +328,14 @@ func Test_ManyToMany(t *testing.T) {
 		assertCount(&Word{}, 2)
 		assertCount(&LanguageWord{}, 4)
 
-		t.Logf("saving partial joins ('add' words to english)")
+		t.Logf("saving without culling ('add' words to english)")
 		en.Words = []*Word{
 			{ID: "Wreck"},
 			{ID: "Nervous"},
 		}
 		wtest.Must(t, c.Save(conn, &hades.SaveParams{
-			Record:       []*Language{en},
-			PartialJoins: []string{"LanguageWords"},
+			Record:   []*Language{en},
+			DontCull: []interface{}{&LanguageWord{}},
 		}))
 
 		assertCount(&Language{}, 2)

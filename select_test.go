@@ -67,4 +67,33 @@ func Test_Select(t *testing.T) {
 	assert.EqualValues(t, 2, len(honors))
 
 	wtest.Must(t, c.ExecRaw(conn, "DROP TABLE honors", nil))
+
+	// ---------
+
+	err = c.Select(conn, []Honor{}, builder.Eq{"id": 3}, nil)
+	assert.Error(t, err, "Select must reject non-pointer slice")
+
+	err = c.Select(conn, &Honor{}, builder.Eq{"id": 3}, nil)
+	assert.Error(t, err, "Select must reject pointer to non-slice")
+
+	type NotAModel struct {
+		ID int64
+	}
+
+	var namSlice []*NotAModel
+	err = c.Select(conn, &namSlice, builder.Eq{"id": 3}, nil)
+	assert.Error(t, err, "Select must reject pointer to slice of non-models")
+
+	// ---------
+
+	err = c.SelectOne(conn, []Honor{}, builder.Eq{"id": 3})
+	assert.Error(t, err, "SelectOne must reject slice")
+
+	answer := 42
+	err = c.SelectOne(conn, &answer, builder.Eq{"id": 3})
+	assert.Error(t, err, "SelectOne must reject pointer to non-struct")
+
+	nam := &NotAModel{}
+	err = c.SelectOne(conn, nam, builder.Eq{"id": 3})
+	assert.Error(t, err, "SelectOne must reject pointer to non-struct")
 }

@@ -136,7 +136,7 @@ func (c *Context) Preload(db *sqlite.Conn, params *PreloadParams) error {
 				}
 
 				var err error
-				freshAddr, err = c.pagedByKeys(db, cri.Relationship.ForeignDBNames[0], keys, reflect.SliceOf(cri.Type), cvt.Search)
+				freshAddr, err = c.fetchPagedByPK(db, cri.Relationship.ForeignDBNames[0], keys, reflect.SliceOf(cri.Type), cvt.Search)
 				if err != nil {
 					return errors.Wrap(err, "fetching has_many records (paginated)")
 				}
@@ -169,7 +169,7 @@ func (c *Context) Preload(db *sqlite.Conn, params *PreloadParams) error {
 				}
 
 				var err error
-				freshAddr, err = c.pagedByKeys(db, cri.Relationship.ForeignDBNames[0], keys, reflect.SliceOf(cri.Type), cvt.Search)
+				freshAddr, err = c.fetchPagedByPK(db, cri.Relationship.ForeignDBNames[0], keys, reflect.SliceOf(cri.Type), cvt.Search)
 				if err != nil {
 					return errors.Wrap(err, "fetching has_one records (paginated)")
 				}
@@ -197,7 +197,7 @@ func (c *Context) Preload(db *sqlite.Conn, params *PreloadParams) error {
 				}
 
 				var err error
-				freshAddr, err = c.pagedByKeys(db, cri.Relationship.AssociationForeignDBNames[0], keys, reflect.SliceOf(cri.Type), cvt.Search)
+				freshAddr, err = c.fetchPagedByPK(db, cri.Relationship.AssociationForeignDBNames[0], keys, reflect.SliceOf(cri.Type), cvt.Search)
 				if err != nil {
 					return errors.Wrap(err, "fetching belongs_to records (paginated)")
 				}

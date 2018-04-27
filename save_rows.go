@@ -162,7 +162,7 @@ func (c *Context) saveRows(conn *sqlite.Conn, params *SaveParams, inputIface int
 		keys = append(keys, getKey(record))
 	}
 
-	cacheAddr, err := c.pagedByKeys(conn, primaryField.DBName, keys, fresh.Type(), nil)
+	cacheAddr, err := c.fetchPagedByPK(conn, primaryField.DBName, keys, fresh.Type(), nil)
 	if err != nil {
 		return errors.Wrap(err, "getting existing rows")
 	}
@@ -216,7 +216,6 @@ func (c *Context) saveRows(conn *sqlite.Conn, params *SaveParams, inputIface int
 
 	if len(inserts) > 0 {
 		for _, rec := range inserts {
-			// FIXME: that's slow/bad because of ToEq
 			err := c.Insert(conn, scope, rec)
 			if err != nil {
 				return errors.Wrap(err, "inserting new DB records")

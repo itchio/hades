@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"time"
 
 	"crawshaw.io/sqlite"
 	"crawshaw.io/sqlite/sqliteutil"
 	"github.com/pkg/errors"
 )
 
-// TODO: if table already exists, just add fields
 func (c *Context) AutoMigrate(conn *sqlite.Conn) error {
 	for _, m := range c.ScopeMap.byDBName {
 		err := c.syncTable(conn, m.GetModelStruct())
@@ -44,7 +44,25 @@ func (c *Context) syncTable(conn *sqlite.Conn, ms *ModelStruct) (err error) {
 		oldColumns[ptir.Name] = ptir
 	}
 
-	// TODO: don't do anything if already good
+	numOldCols := len(oldColumns)
+	numNewCols := 0
+	isMissingCols := false
+	for _, sf := range ms.StructFields {
+		if sf.Relationship != nil {
+			continue
+		}
+		numNewCols++
+
+		if _, ok := oldColumns[sf.DBName]; !ok {
+			isMissingCols = true
+			break
+		}
+	}
+
+	if !isMissingCols && numOldCols == numNewCols {
+		// all done
+		return nil
+	}
 
 	tempName := fmt.Sprintf("__hades_migrate__%s__", tableName)
 	err = c.ExecRaw(conn, fmt.Sprintf("CREATE TABLE %s AS SELECT * FROM %s", tempName, tableName), nil)
@@ -104,7 +122,7 @@ func (c *Context) createTable(conn *sqlite.Conn, ms *ModelStruct) error {
 	var columns []string
 	var pks []string
 	for _, sf := range ms.StructFields {
-		if sf.Relationship != nil {
+		if !sf.IsNormal {
 			continue
 		}
 
@@ -116,6 +134,12 @@ func (c *Context) createTable(conn *sqlite.Conn, ms *ModelStruct) error {
 			sqliteType = "REAL"
 		case reflect.String:
 			sqliteType = "TEXT"
+		case reflect.Struct:
+			if sf.Struct.Type == reflect.TypeOf(time.Time{}) {
+				sqliteType = "DATETIME"
+				break
+			}
+			fallthrough
 		default:
 			return errors.Errorf("Unsupported model field type: %v (in model %v)", sf.Struct.Type, ms.ModelType)
 		}

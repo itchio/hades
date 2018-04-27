@@ -6,10 +6,29 @@ import (
 
 	"crawshaw.io/sqlite"
 	"github.com/go-xorm/builder"
+	"github.com/pkg/errors"
 )
 
 func (c *Context) Select(conn *sqlite.Conn, result interface{}, cond builder.Cond, search *SearchParams) error {
-	ms := c.NewScope(result).GetModelStruct()
+	resultVal := reflect.ValueOf(result)
+	originalType := resultVal.Type()
+
+	if resultVal.Type().Kind() != reflect.Ptr {
+		return errors.Errorf("Select expects results to be a *[]Model, but it got a %v", originalType)
+	}
+	resultVal = resultVal.Elem()
+
+	if resultVal.Type().Kind() != reflect.Slice {
+		return errors.Errorf("Select expects results to be a *[]Model, but it got a %v", originalType)
+	}
+
+	modelType := resultVal.Type().Elem()
+	scope := c.ScopeMap.ByType(modelType)
+	if scope == nil {
+		return errors.Errorf("%v is not a model known to this hades context", modelType)
+	}
+
+	ms := scope.GetModelStruct()
 	columns, fields := c.selectFields(ms)
 
 	query, args, err := builder.Select(columns...).From(ms.TableName).Where(cond).ToSQL()
@@ -17,9 +36,6 @@ func (c *Context) Select(conn *sqlite.Conn, result interface{}, cond builder.Con
 		return err
 	}
 	query = search.Apply(query)
-
-	// TODO: validate types
-	resultVal := reflect.ValueOf(result).Elem()
 
 	return c.ExecRaw(conn, query, func(stmt *sqlite.Stmt) error {
 		el := reflect.New(ms.ModelType)
@@ -35,7 +51,21 @@ func (c *Context) Select(conn *sqlite.Conn, result interface{}, cond builder.Con
 //
 
 func (c *Context) SelectOne(conn *sqlite.Conn, result interface{}, cond builder.Cond) error {
-	ms := c.NewScope(result).GetModelStruct()
+	resultVal := reflect.ValueOf(result)
+	originalType := resultVal.Type()
+	modelType := originalType
+
+	if resultVal.Type().Kind() != reflect.Ptr {
+		return errors.Errorf("SelectOne expects results to be a *Model, but it got a %v", originalType)
+	}
+	resultVal = resultVal.Elem()
+
+	scope := c.ScopeMap.ByType(modelType)
+	if scope == nil {
+		return errors.Errorf("%v is not a model known to this hades context", modelType)
+	}
+
+	ms := scope.GetModelStruct()
 	columns, fields := c.selectFields(ms)
 
 	query, args, err := builder.Select(columns...).From(ms.TableName).Where(cond).ToSQL()
@@ -43,9 +73,6 @@ func (c *Context) SelectOne(conn *sqlite.Conn, result interface{}, cond builder.
 		return err
 	}
 	query = Search().Limit(1).Apply(query)
-
-	// TODO: validate types
-	resultVal := reflect.ValueOf(result).Elem()
 
 	return c.ExecRaw(conn, query, func(stmt *sqlite.Stmt) error {
 		return c.Scan(stmt, fields, resultVal)
@@ -56,7 +83,7 @@ func (c *Context) selectFields(ms *ModelStruct) ([]string, []*StructField) {
 	var columns []string
 	var fields []*StructField
 	for _, sf := range ms.StructFields {
-		if sf.Relationship != nil {
+		if !sf.IsNormal {
 			continue
 		}
 		columns = append(columns, fmt.Sprintf(`%s.%s`, EscapeIdentifier(ms.TableName), EscapeIdentifier(sf.DBName)))

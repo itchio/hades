@@ -5,11 +5,12 @@ import (
 )
 
 type Context struct {
-	ScopeMap *ScopeMap
-	Consumer *state.Consumer
-	Stats    Stats
-	Error    error
-	Log      bool
+	ScopeMap   *ScopeMap
+	Consumer   *state.Consumer
+	Stats      Stats
+	Error      error
+	Log        bool
+	QueryCount int64
 }
 
 type Stats struct {

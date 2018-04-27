@@ -1,7 +1,6 @@
 package hades
 
 import (
-	"database/sql"
 	"go/ast"
 	"reflect"
 	"strings"
@@ -45,51 +44,23 @@ type ModelStruct struct {
 
 // StructField model field's struct definition
 type StructField struct {
-	DBName          string
-	Name            string
-	Names           []string
-	IsPrimaryKey    bool
-	IsNormal        bool
-	IsIgnored       bool
-	IsScanner       bool
-	HasDefaultValue bool
-	Tag             reflect.StructTag
-	TagSettings     map[string]string
-	Struct          reflect.StructField
-	IsForeignKey    bool
-	Relationship    *Relationship
-}
-
-func (structField *StructField) clone() *StructField {
-	clone := &StructField{
-		DBName:          structField.DBName,
-		Name:            structField.Name,
-		Names:           structField.Names,
-		IsPrimaryKey:    structField.IsPrimaryKey,
-		IsNormal:        structField.IsNormal,
-		IsIgnored:       structField.IsIgnored,
-		IsScanner:       structField.IsScanner,
-		HasDefaultValue: structField.HasDefaultValue,
-		Tag:             structField.Tag,
-		TagSettings:     map[string]string{},
-		Struct:          structField.Struct,
-		IsForeignKey:    structField.IsForeignKey,
-	}
-
-	if structField.Relationship != nil {
-		relationship := *structField.Relationship
-		clone.Relationship = &relationship
-	}
-
-	for key, value := range structField.TagSettings {
-		clone.TagSettings[key] = value
-	}
-
-	return clone
+	DBName       string
+	Name         string
+	Names        []string
+	IsPrimaryKey bool
+	IsNormal     bool
+	IsIgnored    bool
+	IsScanner    bool
+	Tag          reflect.StructTag
+	TagSettings  map[string]string
+	Struct       reflect.StructField
+	IsForeignKey bool
+	Relationship *Relationship
 }
 
 // Relationship described the relationship between models
 type Relationship struct {
+	// belongs_to, has_one, has_many, many_to_many
 	Kind                         string
 	PolymorphicType              string
 	PolymorphicDBName            string
@@ -156,63 +127,15 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 					modelStruct.PrimaryFields = append(modelStruct.PrimaryFields, field)
 				}
 
-				if _, ok := field.TagSettings["DEFAULT"]; ok {
-					field.HasDefaultValue = true
-				}
-
-				if _, ok := field.TagSettings["AUTO_INCREMENT"]; ok && !field.IsPrimaryKey {
-					field.HasDefaultValue = true
-				}
-
 				indirectType := fieldStruct.Type
 				for indirectType.Kind() == reflect.Ptr {
 					indirectType = indirectType.Elem()
 				}
 
 				fieldValue := reflect.New(indirectType).Interface()
-				if _, isScanner := fieldValue.(sql.Scanner); isScanner {
-					// is scanner
-					field.IsScanner, field.IsNormal = true, true
-					if indirectType.Kind() == reflect.Struct {
-						for i := 0; i < indirectType.NumField(); i++ {
-							for key, value := range parseTagSetting(indirectType.Field(i).Tag) {
-								if _, ok := field.TagSettings[key]; !ok {
-									field.TagSettings[key] = value
-								}
-							}
-						}
-					}
-				} else if _, isTime := fieldValue.(*time.Time); isTime {
+				if _, isTime := fieldValue.(*time.Time); isTime {
 					// is time
 					field.IsNormal = true
-				} else if _, ok := field.TagSettings["EMBEDDED"]; ok || fieldStruct.Anonymous {
-					// is embedded struct
-					for _, subField := range scope.New(fieldValue).GetModelStruct().StructFields {
-						subField = subField.clone()
-						subField.Names = append([]string{fieldStruct.Name}, subField.Names...)
-						if prefix, ok := field.TagSettings["EMBEDDED_PREFIX"]; ok {
-							subField.DBName = prefix + subField.DBName
-						}
-
-						if subField.IsPrimaryKey {
-							if _, ok := subField.TagSettings["PRIMARY_KEY"]; ok {
-								modelStruct.PrimaryFields = append(modelStruct.PrimaryFields, subField)
-							} else {
-								subField.IsPrimaryKey = false
-							}
-						}
-
-						if subField.Relationship != nil && subField.Relationship.JoinTableHandler != nil {
-							if joinTableHandler, ok := subField.Relationship.JoinTableHandler.(*JoinTableHandler); ok {
-								newJoinTableHandler := &JoinTableHandler{}
-								newJoinTableHandler.Setup(subField.Relationship, joinTableHandler.TableName, reflectType, joinTableHandler.Destination.ModelType)
-								subField.Relationship.JoinTableHandler = newJoinTableHandler
-							}
-						}
-
-						modelStruct.StructFields = append(modelStruct.StructFields, subField)
-					}
-					continue
 				} else {
 					// build relationships
 					switch indirectType.Kind() {
@@ -316,23 +239,6 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 									var toFields = toScope.GetStructFields()
 									relationship.Kind = "has_many"
 
-									if polymorphic := field.TagSettings["POLYMORPHIC"]; polymorphic != "" {
-										// Dog has many toys, tag polymorphic is Owner, then associationType is Owner
-										// Toy use OwnerID, OwnerType ('dogs') as foreign key
-										if polymorphicType := getForeignField(polymorphic+"Type", toFields); polymorphicType != nil {
-											associationType = polymorphic
-											relationship.PolymorphicType = polymorphicType.Name
-											relationship.PolymorphicDBName = polymorphicType.DBName
-											// if Dog has multiple set of toys set name of the set (instead of default 'dogs')
-											if value, ok := field.TagSettings["POLYMORPHIC_VALUE"]; ok {
-												relationship.PolymorphicValue = value
-											} else {
-												relationship.PolymorphicValue = scope.TableName()
-											}
-											polymorphicType.IsForeignKey = true
-										}
-									}
-
 									// if no foreign keys defined with tag
 									if len(foreignKeys) == 0 {
 										// if no association foreign keys defined with tag
@@ -414,23 +320,6 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 								tagAssociationForeignKeys = strings.Split(foreignKey, ",")
 							} else if foreignKey := field.TagSettings["ASSOCIATIONFOREIGNKEY"]; foreignKey != "" {
 								tagAssociationForeignKeys = strings.Split(foreignKey, ",")
-							}
-
-							if polymorphic := field.TagSettings["POLYMORPHIC"]; polymorphic != "" {
-								// Cat has one toy, tag polymorphic is Owner, then associationType is Owner
-								// Toy use OwnerID, OwnerType ('cats') as foreign key
-								if polymorphicType := getForeignField(polymorphic+"Type", toFields); polymorphicType != nil {
-									associationType = polymorphic
-									relationship.PolymorphicType = polymorphicType.Name
-									relationship.PolymorphicDBName = polymorphicType.DBName
-									// if Cat has several different types of toys set name for each (instead of default 'cats')
-									if value, ok := field.TagSettings["POLYMORPHIC_VALUE"]; ok {
-										relationship.PolymorphicValue = value
-									} else {
-										relationship.PolymorphicValue = scope.TableName()
-									}
-									polymorphicType.IsForeignKey = true
-								}
 							}
 
 							// Has One
@@ -562,11 +451,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 			}
 
 			// Even it is ignored, also possible to decode db value into the field
-			if value, ok := field.TagSettings["COLUMN"]; ok {
-				field.DBName = value
-			} else {
-				field.DBName = ToDBName(fieldStruct.Name)
-			}
+			field.DBName = ToDBName(fieldStruct.Name)
 
 			modelStruct.StructFields = append(modelStruct.StructFields, field)
 		}
