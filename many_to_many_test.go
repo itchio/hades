@@ -176,4 +176,24 @@ func Test_ManyToManyThorough(t *testing.T) {
 	assertCount(&Piece{}, 1)
 	assertCount(&Author{}, len(originalAuthors)+1)
 	assertCount(&PieceAuthor{}, len(p.Authors))
+
+	// now let's try to break SQLite's max variables limit
+	for i := 0; i < 1200; i++ {
+		p.Authors = append(p.Authors, &Author{
+			ID: int64(i + 4000),
+		})
+	}
+
+	ordie(c.SaveOne(conn, p))
+
+	assertCount(&Piece{}, 1)
+	assertCount(&Author{}, len(originalAuthors)+1+1200)
+	assertCount(&PieceAuthor{}, len(p.Authors))
+
+	p.Authors = nil
+	ordie(c.SaveOne(conn, p))
+
+	assertCount(&Piece{}, 1)
+	assertCount(&Author{}, len(originalAuthors)+1+1200)
+	assertCount(&PieceAuthor{}, 0)
 }

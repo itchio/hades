@@ -46,7 +46,7 @@ func (c *Context) fetchPagedByPK(conn *sqlite.Conn, PKDBName string, keys []inte
 	return result, nil
 }
 
-func (c *Context) deletePagedByPK(conn *sqlite.Conn, TableName string, PKDBName string, keys []interface{}) error {
+func (c *Context) deletePagedByPK(conn *sqlite.Conn, TableName string, PKDBName string, keys []interface{}, userCond builder.Cond) error {
 	remainingItems := keys
 
 	for len(remainingItems) > 0 {
@@ -57,7 +57,7 @@ func (c *Context) deletePagedByPK(conn *sqlite.Conn, TableName string, PKDBName 
 			pageSize = len(remainingItems)
 		}
 
-		cond := builder.In(PKDBName, remainingItems[:pageSize]...)
+		cond := builder.And(userCond, builder.In(PKDBName, remainingItems[:pageSize]...))
 		query := builder.Delete(cond).From(TableName)
 
 		err := c.Exec(conn, query, nil)

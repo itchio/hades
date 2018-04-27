@@ -69,6 +69,11 @@ func (c *Context) NewManyToMany(JoinTable string, SourceForeignKeys, Destination
 	return mtm, nil
 }
 
+func (mtm *ManyToMany) Mark(Source reflect.Value) {
+	sourceKey := Source.Elem().FieldByName(mtm.SourceAssocName).Interface()
+	mtm.Values[sourceKey] = make([]JoinRec, 0)
+}
+
 func (mtm *ManyToMany) Add(Source reflect.Value, Destin reflect.Value) {
 	sourceKey := Source.Elem().FieldByName(mtm.SourceAssocName).Interface()
 	destinKey := Destin.Elem().FieldByName(mtm.DestinAssocName).Interface()

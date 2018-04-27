@@ -163,12 +163,18 @@ func (c *Context) SaveNoTransaction(conn *sqlite.Conn, params *SaveParams) error
 		if v.Kind() == reflect.Slice {
 			cull := false
 
-			if vri.Relationship != nil && vri.Relationship.Kind == "has_many" {
-				cull = true
-				for _, dc := range params.DontCull {
-					if reflect.TypeOf(dc).Elem() == vri.ModelStruct.ModelType {
-						cull = false
+			if vri.Relationship != nil {
+				switch vri.Relationship.Kind {
+				case "has_many":
+					cull = true
+					for _, dc := range params.DontCull {
+						if reflect.TypeOf(dc).Elem() == vri.ModelStruct.ModelType {
+							cull = false
+						}
 					}
+				case "many_to_many":
+					// culling is done later, but let's record the ManyToMany now
+					vri.ManyToMany.Mark(p)
 				}
 			}
 
@@ -231,7 +237,7 @@ func (c *Context) SaveNoTransaction(conn *sqlite.Conn, params *SaveParams) error
 					}
 
 					if len(vpksToDelete) > 0 {
-						err := c.deletePagedByPK(conn, vri.ModelStruct.TableName, valuePF.DBName, vpksToDelete)
+						err := c.deletePagedByPK(conn, vri.ModelStruct.TableName, valuePF.DBName, vpksToDelete, builder.NewCond())
 						if err != nil {
 							return err
 						}

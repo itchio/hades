@@ -82,11 +82,7 @@ func (c *Context) saveJoins(params *SaveParams, conn *sqlite.Conn, mtm *ManyToMa
 			// Not deleting extra join records, as requested
 		} else {
 			if len(deletes) > 0 {
-				// FIXME: this needs to be paginated to avoid hitting SQLite max variables
-				err := c.Exec(conn, builder.Delete(
-					builder.Eq{mtm.SourceDBName: sourceKey},
-					builder.In(mtm.DestinDBName, deletes...),
-				).From(mtm.Scope.TableName()), nil)
+				err := c.deletePagedByPK(conn, mtm.JoinTable, mtm.DestinDBName, deletes, builder.Eq{mtm.SourceDBName: sourceKey})
 				if err != nil {
 					return errors.Wrap(err, "deleting extraneous relations")
 				}
