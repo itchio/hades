@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/jinzhu/inflection"
 	"github.com/pkg/errors"
 )
 
@@ -650,7 +651,10 @@ func (s JoinTableHandler) Table() string {
 	return s.TableName
 }
 
+func init() {
+	inflection.AddIrregular("human", "humans")
+}
+
 func TableName(typ reflect.Type) string {
-	// FIXME: this does not pluralize everything properly
-	return ToDBName(typ.Name()) + "s"
+	return ToDBName(inflection.Plural(typ.Name()))
 }

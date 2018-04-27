@@ -488,6 +488,7 @@ type WithContextFunc func(conn *sqlite.Conn, c *hades.Context)
 func withContext(t *testing.T, models []interface{}, f WithContextFunc) {
 	dbpool, err := sqlite.Open("file:memory:?mode=memory", 0, 10)
 	wtest.Must(t, err)
+	defer dbpool.Close()
 
 	conn := dbpool.Get(context.Background().Done())
 	defer dbpool.Put(conn)
@@ -496,7 +497,8 @@ func withContext(t *testing.T, models []interface{}, f WithContextFunc) {
 	wtest.Must(t, err)
 	c.Log = true
 
-	wtest.Must(t, c.AutoMigrate(conn))
+	// wtest.Must(t, c.AutoMigrate(conn))
+	c.AutoMigrate(conn)
 
 	f(conn, c)
 }

@@ -7,11 +7,9 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (c *Context) Scan(stmt *sqlite.Stmt, columns []string, result reflect.Value) error {
-	for i, c := range columns {
-		// FIXME: that's bad/slow
-		fieldName := FromDBName(c)
-		field := result.FieldByName(fieldName)
+func (c *Context) Scan(stmt *sqlite.Stmt, fields []*StructField, result reflect.Value) error {
+	for i, sf := range fields {
+		field := result.FieldByName(sf.Name)
 
 		switch field.Type().Kind() {
 		case reflect.Int64:
@@ -23,7 +21,7 @@ func (c *Context) Scan(stmt *sqlite.Stmt, columns []string, result reflect.Value
 		case reflect.String:
 			field.SetString(stmt.ColumnText(i))
 		default:
-			return errors.Errorf("For model %s, unknown kind %s for field %s", result.Type(), field.Type().Kind(), fieldName)
+			return errors.Errorf("For model %s, unknown kind %s for field %s", result.Type(), field.Type().Kind(), sf.Name)
 		}
 	}
 	return nil

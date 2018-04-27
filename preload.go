@@ -62,6 +62,7 @@ func (n *Node) Add(pf PreloadField) {
 		c.Add(pfc)
 	} else {
 		c.Field = pf
+		c.Search = pf.Search
 	}
 }
 
