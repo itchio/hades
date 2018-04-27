@@ -96,29 +96,30 @@ func (c *Context) saveJoins(params *SaveParams, conn *sqlite.Conn, mtm *ManyToMa
 		for _, joinRec := range inserts {
 			rec := joinRec.Record
 
-			if !rec.IsValid() {
+			if rec.IsValid() {
+				err := c.Insert(conn, mtm.Scope, rec)
+				if err != nil {
+					return errors.Wrap(err, "creating new relation records")
+				}
+			} else {
 				// if not passed an explicit record, make it ourselves
 				// that typically means the join table doesn't have additional
 				// columns and is a simple many2many
-				rec = reflect.New(joinType.Elem())
-				rec.Elem().FieldByName(mtm.SourceName).Set(reflect.ValueOf(sourceKey))
-				rec.Elem().FieldByName(mtm.DestinName).Set(reflect.ValueOf(joinRec.DestinKey))
-			}
-
-			// FIXME: that's slow/bad because of ToEq
-			err := c.Insert(conn, mtm.Scope, rec)
-			if err != nil {
-				return errors.Wrap(err, "creating new relation records")
+				eq := builder.Eq{
+					mtm.SourceDBName: sourceKey,
+					mtm.DestinDBName: joinRec.DestinKey,
+				}
+				query := builder.Insert(eq).Into(mtm.JoinTable)
+				err := c.Exec(conn, query, nil)
+				if err != nil {
+					return err
+				}
 			}
 		}
 
-		for destinKey, rec := range updates {
-			// FIXME: that's slow/bad
-			eq := make(builder.Eq)
-			for k, v := range rec {
-				eq[ToDBName(k)] = v
-			}
-			err := c.Exec(conn, builder.Update(eq).Into(mtm.Scope.TableName()).Where(builder.Eq{mtm.SourceDBName: sourceKey, mtm.DestinDBName: destinKey}), nil)
+		for destinKey, cf := range updates {
+			query := builder.Update(cf.ToEq()).Into(mtm.Scope.TableName()).Where(builder.Eq{mtm.SourceDBName: sourceKey, mtm.DestinDBName: destinKey})
+			err := c.Exec(conn, query, nil)
 			if err != nil {
 				return errors.Wrap(err, "updating related records")
 			}

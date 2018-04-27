@@ -3,21 +3,21 @@ package hades
 import (
 	"fmt"
 	"reflect"
-	"strings"
 	"time"
 
+	"github.com/go-xorm/builder"
 	"github.com/pkg/errors"
 )
 
-type ChangedFields map[string]interface{}
+type ChangedFields map[*StructField]interface{}
 
 func DiffRecord(x, y interface{}, scope *Scope) (ChangedFields, error) {
 	if x == nil || y == nil {
 		return nil, errors.New("DiffRecord: arguments must not be nil")
 	}
-	// v1 is the fresh record (from API)
+	// v1 is the fresh record (being saved)
 	v1 := reflect.ValueOf(x)
-	// v2 is the cached record (from DB)
+	// v2 is the cached record (in DB)
 	v2 := reflect.ValueOf(y)
 	if v1.Type() != v2.Type() {
 		return nil, errors.New("DiffRecord: arguments are not the same type")
@@ -28,36 +28,26 @@ func DiffRecord(x, y interface{}, scope *Scope) (ChangedFields, error) {
 		return nil, errors.New("DiffRecord: arguments must be structs")
 	}
 
+	ms := scope.GetModelStruct()
 	var res ChangedFields
 	for i, n := 0, v1.NumField(); i < n; i++ {
 		f := typ.Field(i)
 		fieldName := f.Name
 
-		if strings.HasSuffix(fieldName, "ID") {
-			// ignore
-			continue
-		}
-
-		if f.Type.Kind() == reflect.Ptr {
-			// ignore
-			continue
-		}
-
-		if f.Type.Kind() == reflect.Slice {
-			// ignore
-			continue
-		}
-
-		if sf, ok := scope.FieldByName(fieldName); ok {
-			if sf.IsIgnored {
-				continue
-			}
-		} else {
+		sf, ok := ms.StructFieldsByName[fieldName]
+		if !ok {
 			// not listed as a field? ignore
 			continue
 		}
 
-		iseq, err := eq(v1.Field(i), v2.Field(i))
+		if !sf.IsNormal {
+			continue
+		}
+
+		v1f := v1.Field(i)
+		v2f := v2.Field(i)
+
+		iseq, err := eq(v1f, v2f)
 		if err != nil {
 			return nil, errors.Wrap(err, "while comparing fields")
 		}
@@ -66,9 +56,10 @@ func DiffRecord(x, y interface{}, scope *Scope) (ChangedFields, error) {
 			if res == nil {
 				res = make(ChangedFields)
 			}
-			res[fieldName] = v1.Field(i).Interface()
+			res[sf] = v1f.Interface()
 		}
 	}
+
 	return res, nil
 }
 
@@ -181,4 +172,12 @@ func indirectInterface(v reflect.Value) reflect.Value {
 		return reflect.Value{}
 	}
 	return v.Elem()
+}
+
+func (cf ChangedFields) ToEq() builder.Eq {
+	eq := make(builder.Eq)
+	for sf, v := range cf {
+		eq[sf.DBName] = v
+	}
+	return eq
 }

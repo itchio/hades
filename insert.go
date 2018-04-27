@@ -20,8 +20,7 @@ func (scope *Scope) ToEq(rec reflect.Value) builder.Eq {
 
 	eq := make(builder.Eq)
 	for _, sf := range scope.GetModelStruct().StructFields {
-		if sf.Relationship != nil {
-			// TODO: set IDs here?
+		if !sf.IsNormal {
 			continue
 		}
 		eq[sf.DBName] = recEl.FieldByName(sf.Name).Interface()

@@ -36,10 +36,11 @@ var modelStructsMap = newModelStructsMap()
 
 // ModelStruct model definition
 type ModelStruct struct {
-	PrimaryFields []*StructField
-	StructFields  []*StructField
-	ModelType     reflect.Type
-	TableName     string
+	PrimaryFields      []*StructField
+	StructFields       []*StructField
+	StructFieldsByName map[string]*StructField
+	ModelType          reflect.Type
+	TableName          string
 }
 
 // StructField model field's struct definition
@@ -106,6 +107,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 
 	modelStruct.TableName = TableName(reflectType)
 	modelStruct.ModelType = reflectType
+	modelStruct.StructFieldsByName = make(map[string]*StructField)
 
 	// Get all fields
 	for i := 0; i < reflectType.NumField(); i++ {
@@ -465,6 +467,10 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 	}
 
 	modelStructsMap.Set(reflectType, &modelStruct)
+
+	for _, sf := range modelStruct.StructFields {
+		modelStruct.StructFieldsByName[sf.Name] = sf
+	}
 
 	return &modelStruct
 }

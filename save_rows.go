@@ -223,12 +223,8 @@ func (c *Context) saveRows(conn *sqlite.Conn, params *SaveParams, inputIface int
 		}
 	}
 
-	for key, rec := range updates {
-		// FIXME: that's slow/bad
-		eq := make(builder.Eq)
-		for k, v := range rec {
-			eq[ToDBName(k)] = v
-		}
+	for key, cf := range updates {
+		eq := cf.ToEq()
 		err := c.Exec(conn, builder.Update(eq).Into(scope.TableName()).Where(builder.Eq{primaryField.DBName: key}), nil)
 		if err != nil {
 			return errors.Wrap(err, "updating DB records")
