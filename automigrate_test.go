@@ -163,7 +163,7 @@ func Test_AutoMigrateAllValidTypes(t *testing.T) {
 	assert.False(t, pti[1].NotNull)
 
 	assert.EqualValues(t, "alive", pti[2].Name)
-	assert.EqualValues(t, "INTEGER", pti[2].Type)
+	assert.EqualValues(t, "BOOLEAN", pti[2].Type)
 	assert.False(t, pti[2].PrimaryKey)
 	assert.False(t, pti[2].NotNull)
 
@@ -176,6 +176,25 @@ func Test_AutoMigrateAllValidTypes(t *testing.T) {
 	assert.EqualValues(t, "DATETIME", pti[4].Type)
 	assert.False(t, pti[4].PrimaryKey)
 	assert.False(t, pti[4].NotNull)
+
+	tim := time.Now()
+	h1 := &Humanoid{
+		ID:        12,
+		Alive:     true,
+		BornAt:    tim,
+		FirstName: "Jeremy",
+		HeartRate: 3.14,
+	}
+	ordie(c.SaveOne(conn, h1))
+
+	h2 := &Humanoid{}
+	ordie(c.SelectOne(conn, h2, builder.Eq{"id": 12}))
+
+	assert.EqualValues(t, h1.ID, h2.ID)
+	assert.EqualValues(t, h1.Alive, h2.Alive)
+	assert.EqualValues(t, h1.BornAt.Format(time.RFC3339Nano), h2.BornAt.Format(time.RFC3339Nano))
+	assert.EqualValues(t, h1.FirstName, h2.FirstName)
+	assert.EqualValues(t, h1.HeartRate, h2.HeartRate)
 }
 
 func ordie(err error) {

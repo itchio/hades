@@ -127,15 +127,23 @@ func (c *Context) createTable(conn *sqlite.Conn, ms *ModelStruct) error {
 		}
 
 		var sqliteType string
-		switch sf.Struct.Type.Kind() {
-		case reflect.Int64, reflect.Bool:
+		typ := sf.Struct.Type
+		if typ.Kind() == reflect.Ptr {
+			typ = typ.Elem()
+		}
+
+		switch typ.Kind() {
+		case reflect.Int64, reflect.Int32, reflect.Int16, reflect.Int8, reflect.Int,
+			reflect.Uint64, reflect.Uint32, reflect.Uint16, reflect.Uint8, reflect.Uint:
 			sqliteType = "INTEGER"
-		case reflect.Float64:
+		case reflect.Bool:
+			sqliteType = "BOOLEAN"
+		case reflect.Float64, reflect.Float32:
 			sqliteType = "REAL"
 		case reflect.String:
 			sqliteType = "TEXT"
 		case reflect.Struct:
-			if sf.Struct.Type == reflect.TypeOf(time.Time{}) {
+			if typ == reflect.TypeOf(time.Time{}) {
 				sqliteType = "DATETIME"
 				break
 			}

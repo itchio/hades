@@ -1,7 +1,6 @@
 package hades
 
 import (
-	"fmt"
 	"reflect"
 	"time"
 
@@ -47,9 +46,9 @@ func DiffRecord(x, y interface{}, scope *Scope) (ChangedFields, error) {
 		v1f := v1.Field(i)
 		v2f := v2.Field(i)
 
-		iseq, err := eq(v1f, v2f)
+		iseq, err := iseq(sf, v1f, v2f)
 		if err != nil {
-			return nil, errors.Wrap(err, "while comparing fields")
+			return res, err
 		}
 
 		if !iseq {
@@ -63,121 +62,56 @@ func DiffRecord(x, y interface{}, scope *Scope) (ChangedFields, error) {
 	return res, nil
 }
 
-// Comparison.
-// Taken from text/template
+func iseq(sf *StructField, v1f reflect.Value, v2f reflect.Value) (bool, error) {
+	typ := sf.Struct.Type
+	originalTyp := typ
 
-var (
-	errBadComparison = errors.New("incompatible types for comparison")
-	errNoComparison  = errors.New("missing argument for comparison")
-)
-
-type kind int
-
-const (
-	invalidKind kind = iota
-	boolKind
-	complexKind
-	intKind
-	floatKind
-	stringKind
-	uintKind
-	timeKind
-)
-
-func basicKind(v reflect.Value) (kind, error) {
-	switch v.Kind() {
-	case reflect.Bool:
-		return boolKind, nil
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		return intKind, nil
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-		return uintKind, nil
-	case reflect.Float32, reflect.Float64:
-		return floatKind, nil
-	case reflect.Complex64, reflect.Complex128:
-		return complexKind, nil
-	case reflect.String:
-		return stringKind, nil
-	case reflect.Struct:
-		if _, ok := v.Interface().(time.Time); ok {
-			return timeKind, nil
-		}
-	}
-	return invalidKind, fmt.Errorf("bad type for comparison: %v", v.Type())
-}
-
-// eq evaluates the comparison a == b || a == c || ...
-func eq(arg1 reflect.Value, arg2 ...reflect.Value) (bool, error) {
-	v1 := indirectInterface(arg1)
-	k1, err := basicKind(v1)
-	if err != nil {
-		return false, err
-	}
-	if len(arg2) == 0 {
-		return false, errNoComparison
-	}
-	for _, arg := range arg2 {
-		v2 := indirectInterface(arg)
-		k2, err := basicKind(v2)
-		if err != nil {
-			return false, err
-		}
-		truth := false
-		if k1 != k2 {
-			// Special case: Can compare integer values regardless of type's sign.
-			switch {
-			case k1 == intKind && k2 == uintKind:
-				truth = v1.Int() >= 0 && uint64(v1.Int()) == v2.Uint()
-			case k1 == uintKind && k2 == intKind:
-				truth = v2.Int() >= 0 && v1.Uint() == uint64(v2.Int())
-			default:
-				return false, errBadComparison
+	if typ.Kind() == reflect.Ptr {
+		if v1f.IsNil() {
+			if !v2f.IsNil() {
+				return false, nil // only v1 nil
 			}
+			return true, nil // both nil
 		} else {
-			switch k1 {
-			case boolKind:
-				truth = v1.Bool() == v2.Bool()
-			case complexKind:
-				truth = v1.Complex() == v2.Complex()
-			case floatKind:
-				truth = v1.Float() == v2.Float()
-			case intKind:
-				truth = v1.Int() == v2.Int()
-			case stringKind:
-				truth = v1.String() == v2.String()
-			case uintKind:
-				truth = v1.Uint() == v2.Uint()
-			case timeKind:
-				truth = v1.Interface().(time.Time) == v2.Interface().(time.Time)
-			default:
-				panic("invalid kind")
+			if v2f.IsNil() {
+				return false, nil // only v2 nil
 			}
-		}
-		if truth {
-			return true, nil
-		}
-	}
-	return false, nil
-}
 
-// indirectInterface returns the concrete value in an interface value,
-// or else the zero reflect.Value.
-// That is, if v represents the interface value x, the result is the same as reflect.ValueOf(x):
-// the fact that x was an interface value is forgotten.
-func indirectInterface(v reflect.Value) reflect.Value {
-	if v.Kind() != reflect.Interface {
-		return v
+			// neither are nil, let's compare values
+			typ = typ.Elem()
+			v1f = v1f.Elem()
+			v2f = v2f.Elem()
+		}
 	}
-	if v.IsNil() {
-		return reflect.Value{}
+
+	switch typ.Kind() {
+	case reflect.Int64, reflect.Int32, reflect.Int16, reflect.Int8, reflect.Int,
+		reflect.Uint64, reflect.Uint32, reflect.Uint16, reflect.Uint8, reflect.Uint:
+		eq := v1f.Int() == v2f.Int()
+		return eq, nil
+	case reflect.Bool:
+		eq := v1f.Bool() == v2f.Bool()
+		return eq, nil
+	case reflect.Float64, reflect.Float32:
+		eq := v1f.Float() == v2f.Float()
+		return eq, nil
+	case reflect.String:
+		eq := v1f.String() == v2f.String()
+		return eq, nil
+	case reflect.Struct:
+		if typ == reflect.TypeOf(time.Time{}) {
+			eq := v1f.Interface().(time.Time).UnixNano() == v2f.Interface().(time.Time).UnixNano()
+			return eq, nil
+		}
 	}
-	return v.Elem()
+
+	return false, errors.Errorf("Don't know how to compare fields of type %v", originalTyp)
 }
 
 func (cf ChangedFields) ToEq() builder.Eq {
 	eq := make(builder.Eq)
 	for sf, v := range cf {
-		eq[sf.DBName] = v
+		eq[sf.DBName] = DBValue(v)
 	}
 	return eq
 }

@@ -23,7 +23,7 @@ func (scope *Scope) ToEq(rec reflect.Value) builder.Eq {
 		if !sf.IsNormal {
 			continue
 		}
-		eq[sf.DBName] = recEl.FieldByName(sf.Name).Interface()
+		eq[sf.DBName] = DBValue(recEl.FieldByName(sf.Name).Interface())
 	}
 	return eq
 }

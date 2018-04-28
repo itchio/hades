@@ -12,16 +12,16 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type Honor struct {
-	ID    int64
-	Title string
-}
-
 func Test_Select(t *testing.T) {
 	consumer := &state.Consumer{
 		OnMessage: func(lvl string, message string) {
 			t.Logf("[%s] %s", lvl, message)
 		},
+	}
+
+	type Honor struct {
+		ID    int64
+		Title string
 	}
 
 	c, err := hades.NewContext(consumer, &Honor{})
