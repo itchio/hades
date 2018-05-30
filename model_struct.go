@@ -45,18 +45,20 @@ type ModelStruct struct {
 
 // StructField model field's struct definition
 type StructField struct {
-	DBName       string
-	Name         string
-	Names        []string
-	IsPrimaryKey bool
-	IsNormal     bool
-	IsIgnored    bool
-	IsScanner    bool
-	Tag          reflect.StructTag
-	TagSettings  map[string]string
-	Struct       reflect.StructField
-	IsForeignKey bool
-	Relationship *Relationship
+	DBName         string
+	Name           string
+	Names          []string
+	IsPrimaryKey   bool
+	IsNormal       bool
+	IsIgnored      bool
+	IsScanner      bool
+	IsSquashed     bool
+	SquashedFields []*StructField
+	Tag            reflect.StructTag
+	TagSettings    map[string]string
+	Struct         reflect.StructField
+	IsForeignKey   bool
+	Relationship   *Relationship
 }
 
 // Relationship described the relationship between models
@@ -123,6 +125,12 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 			// is ignored field
 			if _, ok := field.TagSettings["-"]; ok {
 				field.IsIgnored = true
+			} else if _, ok := field.TagSettings["SQUASH"]; ok {
+				field.IsSquashed = true
+				nestedModelStruct := scope.ctx.NewScope(reflect.Zero(field.Struct.Type).Interface()).GetModelStruct()
+				for _, sf := range nestedModelStruct.StructFields {
+					field.SquashedFields = append(field.SquashedFields, sf)
+				}
 			} else {
 				if _, ok := field.TagSettings["PRIMARY_KEY"]; ok {
 					field.IsPrimaryKey = true

@@ -197,6 +197,65 @@ func Test_AutoMigrateAllValidTypes(t *testing.T) {
 	assert.EqualValues(t, h1.HeartRate, h2.HeartRate)
 }
 
+func Test_AutoMigrateSquash(t *testing.T) {
+	dbpool, err := sqlite.Open("file:memory:?mode=memory", 0, 10)
+	ordie(err)
+	defer dbpool.Close()
+
+	conn := dbpool.Get(context.Background().Done())
+	defer dbpool.Put(conn)
+
+	type AndroidTraits struct {
+		Funny bool
+		Wise  bool
+		Fair  bool
+	}
+
+	type Android struct {
+		ID     int64
+		Title  string
+		Traits AndroidTraits `hades:"squash"`
+	}
+
+	models := []interface{}{&Android{}}
+
+	c, err := hades.NewContext(makeConsumer(t), models...)
+	ordie(err)
+	c.Log = true
+
+	ordie(c.AutoMigrate(conn))
+
+	pti, err := c.PragmaTableInfo(conn, "androids")
+	ordie(err)
+
+	assert.EqualValues(t, 5, len(pti))
+
+	assert.EqualValues(t, "id", pti[0].Name)
+	assert.EqualValues(t, "INTEGER", pti[0].Type)
+	assert.True(t, pti[0].PrimaryKey)
+	assert.True(t, pti[0].NotNull)
+
+	assert.EqualValues(t, "title", pti[1].Name)
+	assert.EqualValues(t, "TEXT", pti[1].Type)
+	assert.False(t, pti[1].PrimaryKey)
+	assert.False(t, pti[1].NotNull)
+
+	assert.EqualValues(t, "funny", pti[2].Name)
+	assert.EqualValues(t, "BOOLEAN", pti[2].Type)
+	assert.False(t, pti[2].PrimaryKey)
+	assert.False(t, pti[2].NotNull)
+
+	assert.EqualValues(t, "wise", pti[3].Name)
+	assert.EqualValues(t, "BOOLEAN", pti[3].Type)
+	assert.False(t, pti[3].PrimaryKey)
+	assert.False(t, pti[3].NotNull)
+
+	assert.EqualValues(t, "fair", pti[4].Name)
+	assert.EqualValues(t, "BOOLEAN", pti[4].Type)
+	assert.False(t, pti[4].PrimaryKey)
+	assert.False(t, pti[4].NotNull)
+}
+
 func ordie(err error) {
 	if err != nil {
 		panic(err)

@@ -48,7 +48,7 @@ func (c *Context) syncTable(conn *sqlite.Conn, ms *ModelStruct) (err error) {
 	numNewCols := 0
 	isMissingCols := false
 	for _, sf := range ms.StructFields {
-		if sf.Relationship != nil {
+		if !sf.IsNormal {
 			continue
 		}
 		numNewCols++
@@ -121,9 +121,20 @@ func (c *Context) createTable(conn *sqlite.Conn, ms *ModelStruct) error {
 	query := fmt.Sprintf("CREATE TABLE %s", EscapeIdentifier(ms.TableName))
 	var columns []string
 	var pks []string
-	for _, sf := range ms.StructFields {
+
+	var processField func(sf *StructField) error
+	processField = func(sf *StructField) error {
+		if sf.IsSquashed {
+			for _, nsf := range sf.SquashedFields {
+				err := processField(nsf)
+				if err != nil {
+					return err
+				}
+			}
+		}
+
 		if !sf.IsNormal {
-			continue
+			return nil
 		}
 
 		var sqliteType string
@@ -158,6 +169,14 @@ func (c *Context) createTable(conn *sqlite.Conn, ms *ModelStruct) error {
 		}
 		column := fmt.Sprintf(`%s %s%s`, EscapeIdentifier(sf.DBName), sqliteType, modifier)
 		columns = append(columns, column)
+		return nil
+	}
+
+	for _, sf := range ms.StructFields {
+		err := processField(sf)
+		if err != nil {
+			return err
+		}
 	}
 
 	if len(pks) > 0 {
