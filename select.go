@@ -82,12 +82,27 @@ func (c *Context) SelectOne(conn *sqlite.Conn, result interface{}, cond builder.
 func (c *Context) selectFields(ms *ModelStruct) ([]string, []*StructField) {
 	var columns []string
 	var fields []*StructField
-	for _, sf := range ms.StructFields {
+
+	var processField func(sf *StructField, nested bool)
+	processField = func(sf *StructField, nested bool) {
+		if sf.IsSquashed {
+			fields = append(fields, sf)
+			for _, nsf := range sf.SquashedFields {
+				processField(nsf, true)
+			}
+		}
+
 		if !sf.IsNormal {
-			continue
+			return
 		}
 		columns = append(columns, fmt.Sprintf(`%s.%s`, EscapeIdentifier(ms.TableName), EscapeIdentifier(sf.DBName)))
-		fields = append(fields, sf)
+		if !nested {
+			fields = append(fields, sf)
+		}
+	}
+
+	for _, sf := range ms.StructFields {
+		processField(sf, false)
 	}
 
 	return columns, fields

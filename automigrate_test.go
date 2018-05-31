@@ -224,6 +224,7 @@ func Test_AutoMigrateSquash(t *testing.T) {
 	c.Log = true
 
 	ordie(c.AutoMigrate(conn))
+	defer c.ExecRaw(conn, "DROP TABLE androids", nil)
 
 	pti, err := c.PragmaTableInfo(conn, "androids")
 	ordie(err)

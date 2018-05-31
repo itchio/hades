@@ -9,8 +9,20 @@ import (
 )
 
 func (c *Context) Scan(stmt *sqlite.Stmt, structFields []*StructField, result reflect.Value) error {
-	for i, sf := range structFields {
+	i := 0
+
+	var processField func(sf *StructField, result reflect.Value) error
+	processField = func(sf *StructField, result reflect.Value) error {
 		field := result.FieldByName(sf.Name)
+		if sf.IsSquashed {
+			for _, nsf := range sf.SquashedFields {
+				err := processField(nsf, field)
+				if err != nil {
+					return err
+				}
+			}
+			return nil
+		}
 
 		fieldEl := field
 		typ := field.Type()
@@ -22,7 +34,8 @@ func (c *Context) Scan(stmt *sqlite.Stmt, structFields []*StructField, result re
 			wasPtr = true
 			if colTyp == sqlite.SQLITE_NULL {
 				field.Set(reflect.Zero(field.Type()))
-				continue
+				i++
+				return nil
 			}
 
 			fieldEl = field.Elem()
@@ -77,6 +90,17 @@ func (c *Context) Scan(stmt *sqlite.Stmt, structFields []*StructField, result re
 		default:
 			return errors.Errorf("For model %s, unknown kind %s for field %s", result.Type(), field.Type().Kind(), sf.Name)
 		}
+
+		i++
+		return nil
 	}
+
+	for _, sf := range structFields {
+		err := processField(sf, result)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }

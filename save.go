@@ -5,9 +5,9 @@ import (
 	"reflect"
 
 	"github.com/go-xorm/builder"
+	"github.com/itchio/hades/sqliteutil2"
 
 	"crawshaw.io/sqlite"
-	"crawshaw.io/sqlite/sqliteutil"
 	"github.com/pkg/errors"
 )
 
@@ -32,7 +32,7 @@ func (c *Context) SaveOne(conn *sqlite.Conn, record interface{}) (err error) {
 }
 
 func (c *Context) Save(conn *sqlite.Conn, params *SaveParams) (err error) {
-	defer sqliteutil.Save(conn)(&err)
+	defer sqliteutil2.Save(conn)(&err)
 
 	return c.SaveNoTransaction(conn, params)
 }

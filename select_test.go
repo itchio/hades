@@ -97,3 +97,62 @@ func Test_Select(t *testing.T) {
 	err = c.SelectOne(conn, nam, builder.Eq{"id": 3})
 	assert.Error(t, err, "SelectOne must reject pointer to non-struct")
 }
+
+func Test_SelectSquashed(t *testing.T) {
+	consumer := &state.Consumer{
+		OnMessage: func(lvl string, message string) {
+			t.Logf("[%s] %s", lvl, message)
+		},
+	}
+
+	type AndroidTraits struct {
+		Wise  bool
+		Funny bool
+	}
+
+	type Android struct {
+		ID     int64
+		Traits AndroidTraits `hades:"squash"`
+	}
+
+	c, err := hades.NewContext(consumer, &Android{})
+	if err != nil {
+		panic(err)
+	}
+	c.Log = true
+
+	sqlite.Logger = func(code sqlite.ErrorCode, msg []byte) {
+		t.Logf("[SQLITE] %d %s", code, string(msg))
+	}
+
+	dbpool, err := sqlite.Open("file:memory:?mode=memory", 0, 10)
+	if err != nil {
+		panic(err)
+	}
+
+	conn := dbpool.Get(context.Background().Done())
+	defer dbpool.Put(conn)
+
+	wtest.Must(t, c.ExecRaw(conn, "CREATE TABLE androids (id INTEGER PRIMARY KEY, wise BOOLEAN, funny BOOLEAN)", nil))
+	defer c.ExecRaw(conn, "DROP TABLE androids", nil)
+
+	baseAndroids := []Android{
+		Android{ID: 1, Traits: AndroidTraits{Wise: true}},
+		Android{ID: 2, Traits: AndroidTraits{Funny: true}},
+		Android{ID: 3},
+		Android{ID: 4, Traits: AndroidTraits{Wise: true, Funny: true}},
+	}
+
+	for _, a := range baseAndroids {
+		wtest.Must(t, c.Exec(conn, builder.Insert(builder.Eq{"id": a.ID, "wise": a.Traits.Wise, "funny": a.Traits.Funny}).Into("androids"), nil))
+	}
+
+	count, err := c.Count(conn, &Android{}, builder.NewCond())
+	wtest.Must(t, err)
+	assert.EqualValues(t, 4, count)
+
+	a := &Android{}
+	err = c.SelectOne(conn, a, builder.Eq{"id": 1})
+	wtest.Must(t, err)
+	assert.EqualValues(t, baseAndroids[0], *a)
+}
