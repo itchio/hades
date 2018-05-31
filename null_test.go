@@ -55,7 +55,9 @@ func Test_Null(t *testing.T) {
 		ordie(c.SaveOne(conn, d))
 		{
 			dd := &Download{}
-			ordie(c.SelectOne(conn, dd, builder.Eq{"id": 123}))
+			found, err := c.SelectOne(conn, dd, builder.Eq{"id": 123})
+			ordie(err)
+			assert.True(t, found)
 
 			assert.EqualValues(t, 123, dd.ID)
 			assert.Nil(t, dd.FinishedAt)
@@ -76,7 +78,9 @@ func Test_Null(t *testing.T) {
 
 		{
 			dd := &Download{}
-			ordie(c.SelectOne(conn, dd, builder.Eq{"id": 123}))
+			found, err := c.SelectOne(conn, dd, builder.Eq{"id": 123})
+			ordie(err)
+			assert.True(t, found)
 
 			assert.EqualValues(t, 123, dd.ID)
 			assert.EqualValues(t, *d.ErrorMessage, *dd.ErrorMessage)
@@ -89,7 +93,9 @@ func Test_Null(t *testing.T) {
 
 		{
 			dd := &Download{}
-			ordie(c.SelectOne(conn, dd, builder.Eq{"id": 123}))
+			found, err := c.SelectOne(conn, dd, builder.Eq{"id": 123})
+			ordie(err)
+			assert.True(t, found)
 
 			assert.EqualValues(t, 123, dd.ID)
 			assert.Nil(t, dd.ErrorMessage)

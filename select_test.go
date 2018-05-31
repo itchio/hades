@@ -60,7 +60,9 @@ func Test_Select(t *testing.T) {
 	assert.EqualValues(t, 4, count)
 
 	honor := &Honor{}
-	wtest.Must(t, c.SelectOne(conn, honor, builder.Eq{"id": 3}))
+	found, err := c.SelectOne(conn, honor, builder.Eq{"id": 3})
+	wtest.Must(t, err)
+	assert.True(t, found)
 
 	var honors []*Honor
 	wtest.Must(t, c.Select(conn, &honors, builder.Gte{"id": 2}, nil))
@@ -86,15 +88,19 @@ func Test_Select(t *testing.T) {
 
 	// ---------
 
-	err = c.SelectOne(conn, []Honor{}, builder.Eq{"id": 3})
+	hhh := &Honor{}
+	_, err = c.SelectOne(conn, &hhh, builder.Eq{"id": 3})
+	assert.Error(t, err, "SelectOne must pointer to pointer")
+
+	_, err = c.SelectOne(conn, []Honor{}, builder.Eq{"id": 3})
 	assert.Error(t, err, "SelectOne must reject slice")
 
 	answer := 42
-	err = c.SelectOne(conn, &answer, builder.Eq{"id": 3})
+	_, err = c.SelectOne(conn, &answer, builder.Eq{"id": 3})
 	assert.Error(t, err, "SelectOne must reject pointer to non-struct")
 
 	nam := &NotAModel{}
-	err = c.SelectOne(conn, nam, builder.Eq{"id": 3})
+	_, err = c.SelectOne(conn, nam, builder.Eq{"id": 3})
 	assert.Error(t, err, "SelectOne must reject pointer to non-struct")
 }
 
@@ -152,7 +158,8 @@ func Test_SelectSquashed(t *testing.T) {
 	assert.EqualValues(t, 4, count)
 
 	a := &Android{}
-	err = c.SelectOne(conn, a, builder.Eq{"id": 1})
+	found, err := c.SelectOne(conn, a, builder.Eq{"id": 1})
 	wtest.Must(t, err)
+	assert.True(t, found)
 	assert.EqualValues(t, baseAndroids[0], *a)
 }

@@ -70,7 +70,9 @@ func Test_BelongsTo(t *testing.T) {
 		})
 
 		fate := &Fate{}
-		wtest.Must(t, c.SelectOne(conn, fate, builder.Eq{"id": 421}))
+		found, err := c.SelectOne(conn, fate, builder.Eq{"id": 421})
+		wtest.Must(t, err)
+		assert.True(t, found)
 		assert.EqualValues(t, "Book authorship", fate.Desc)
 	})
 

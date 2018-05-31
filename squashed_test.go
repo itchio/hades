@@ -164,7 +164,9 @@ func Test_SquashedFull(t *testing.T) {
 		wtest.Must(t, c.SaveOne(conn, fu))
 
 		u := &FakeUser{}
-		wtest.Must(t, c.SelectOne(conn, u, builder.NewCond()))
+		found, err := c.SelectOne(conn, u, builder.NewCond())
+		wtest.Must(t, err)
+		assert.True(t, found)
 
 		assert.EqualValues(t, 15, u.ID)
 

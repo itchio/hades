@@ -53,7 +53,9 @@ func Test_HasMany(t *testing.T) {
 		assertCount(&Quality{}, 3)
 		{
 			q := &Quality{}
-			wtest.Must(t, c.SelectOne(conn, q, builder.Eq{"id": 11}))
+			found, err := c.SelectOne(conn, q, builder.Eq{"id": 11})
+			wtest.Must(t, err)
+			assert.True(t, found)
 			assert.EqualValues(t, "Inspiration again", q.Label)
 		}
 

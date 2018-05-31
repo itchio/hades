@@ -64,7 +64,9 @@ func Test_HasOne(t *testing.T) {
 		var countries []*Country
 		for i := 0; i < 4; i++ {
 			country := &Country{}
-			wtest.Must(t, c.SelectOne(conn, country, builder.Eq{"id": 324}))
+			found, err := c.SelectOne(conn, country, builder.Eq{"id": 324})
+			wtest.Must(t, err)
+			assert.True(t, found)
 			countries = append(countries, country)
 		}
 

@@ -105,7 +105,9 @@ func Test_ManyToMany(t *testing.T) {
 
 		{
 			w := &Word{}
-			wtest.Must(t, c.SelectOne(conn, w, builder.Eq{"id": "Wreck"}))
+			found, err := c.SelectOne(conn, w, builder.Eq{"id": "Wreck"})
+			wtest.Must(t, err)
+			assert.True(t, found)
 			assert.EqualValues(t, "punk band reference", w.Comment)
 		}
 

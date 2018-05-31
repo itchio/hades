@@ -48,7 +48,9 @@ func Test_AutoMigrate(t *testing.T) {
 
 		ordie(c.SaveOne(conn, &User{ID: 123, FirstName: "Joanna"}))
 		u := &User{}
-		ordie(c.SelectOne(conn, u, builder.Eq{"id": 123}))
+		foundUser, err := c.SelectOne(conn, u, builder.Eq{"id": 123})
+		ordie(err)
+		assert.True(t, foundUser)
 		assert.EqualValues(t, &User{ID: 123, FirstName: "Joanna"}, u)
 
 		t.Logf("first migration (bis)")
@@ -89,7 +91,13 @@ func Test_AutoMigrate(t *testing.T) {
 		assert.False(t, pti[2].NotNull)
 
 		u := &User{}
-		ordie(c.SelectOne(conn, u, builder.Eq{"id": 123}))
+		foundUser, err := c.SelectOne(conn, u, builder.Eq{"id": 83294})
+		ordie(err)
+		assert.False(t, foundUser)
+
+		foundUser, err = c.SelectOne(conn, u, builder.Eq{"id": 123})
+		ordie(err)
+		assert.True(t, foundUser)
 		assert.EqualValues(t, &User{ID: 123, FirstName: "Joanna", LastName: ""}, u)
 
 		t.Logf("second migration (bis)")
@@ -188,7 +196,9 @@ func Test_AutoMigrateAllValidTypes(t *testing.T) {
 	ordie(c.SaveOne(conn, h1))
 
 	h2 := &Humanoid{}
-	ordie(c.SelectOne(conn, h2, builder.Eq{"id": 12}))
+	found, err := c.SelectOne(conn, h2, builder.Eq{"id": 12})
+	ordie(err)
+	assert.True(t, found)
 
 	assert.EqualValues(t, h1.ID, h2.ID)
 	assert.EqualValues(t, h1.Alive, h2.Alive)
