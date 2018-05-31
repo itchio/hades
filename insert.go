@@ -19,11 +19,24 @@ func (scope *Scope) ToEq(rec reflect.Value) builder.Eq {
 	}
 
 	eq := make(builder.Eq)
-	for _, sf := range scope.GetModelStruct().StructFields {
-		if !sf.IsNormal {
-			continue
+
+	var processField func(sf *StructField, val reflect.Value)
+	processField = func(sf *StructField, val reflect.Value) {
+		field := val.FieldByName(sf.Name)
+		if sf.IsSquashed {
+			for _, nsf := range sf.SquashedFields {
+				processField(nsf, field)
+			}
 		}
-		eq[sf.DBName] = DBValue(recEl.FieldByName(sf.Name).Interface())
+
+		if !sf.IsNormal {
+			return
+		}
+		eq[sf.DBName] = DBValue(field.Interface())
+	}
+
+	for _, sf := range scope.GetModelStruct().StructFields {
+		processField(sf, recEl)
 	}
 	return eq
 }

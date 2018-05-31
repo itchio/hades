@@ -36,12 +36,20 @@ func (s *SearchParams) Apply(sql string) string {
 			sql = fmt.Sprintf("%s ORDER BY %s", sql, strings.Join(s.orders, ", "))
 		}
 
-		if s.offset != nil {
-			sql = fmt.Sprintf("%s OFFSET %d", sql, *s.offset)
-		}
+		if s.limit != nil || s.offset != nil {
+			var limit int64 = -1
+			if s.limit != nil {
+				limit = *s.limit
+			}
 
-		if s.limit != nil {
-			sql = fmt.Sprintf("%s LIMIT %d", sql, *s.limit)
+			// offset must appear without limit,
+			// and a negative limit means no limit.
+			// see https://www.sqlite.org/lang_select.html#limitoffset
+			sql = fmt.Sprintf("%s LIMIT %d", sql, limit)
+
+			if s.offset != nil {
+				sql = fmt.Sprintf("%s OFFSET %d", sql, *s.offset)
+			}
 		}
 	}
 	return sql

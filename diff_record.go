@@ -10,14 +10,14 @@ import (
 
 type ChangedFields map[*StructField]interface{}
 
-func DiffRecord(x, y interface{}, scope *Scope) (ChangedFields, error) {
-	if x == nil || y == nil {
+func DiffRecord(freshRecord, cachedRecord interface{}, scope *Scope) (ChangedFields, error) {
+	if freshRecord == nil || cachedRecord == nil {
 		return nil, errors.New("DiffRecord: arguments must not be nil")
 	}
 	// v1 is the fresh record (being saved)
-	v1 := reflect.ValueOf(x)
+	v1 := reflect.ValueOf(freshRecord)
 	// v2 is the cached record (in DB)
-	v2 := reflect.ValueOf(y)
+	v2 := reflect.ValueOf(cachedRecord)
 	if v1.Type() != v2.Type() {
 		return nil, errors.New("DiffRecord: arguments are not the same type")
 	}
@@ -29,26 +29,28 @@ func DiffRecord(x, y interface{}, scope *Scope) (ChangedFields, error) {
 
 	ms := scope.GetModelStruct()
 	var res ChangedFields
-	for i, n := 0, v1.NumField(); i < n; i++ {
-		f := typ.Field(i)
-		fieldName := f.Name
 
-		sf, ok := ms.StructFieldsByName[fieldName]
-		if !ok {
-			// not listed as a field? ignore
-			continue
+	var processField func(sf *StructField, v1 reflect.Value, v2 reflect.Value) error
+	processField = func(sf *StructField, v1 reflect.Value, v2 reflect.Value) error {
+		v1f := v1.FieldByName(sf.Name)
+		v2f := v2.FieldByName(sf.Name)
+
+		if sf.IsSquashed {
+			for _, nsf := range sf.SquashedFields {
+				err := processField(nsf, v1f, v2f)
+				if err != nil {
+					return err
+				}
+			}
 		}
 
 		if !sf.IsNormal {
-			continue
+			return nil
 		}
-
-		v1f := v1.Field(i)
-		v2f := v2.Field(i)
 
 		iseq, err := iseq(sf, v1f, v2f)
 		if err != nil {
-			return res, err
+			return err
 		}
 
 		if !iseq {
@@ -56,6 +58,14 @@ func DiffRecord(x, y interface{}, scope *Scope) (ChangedFields, error) {
 				res = make(ChangedFields)
 			}
 			res[sf] = v1f.Interface()
+		}
+		return nil
+	}
+
+	for _, sf := range ms.StructFields {
+		err := processField(sf, v1, v2)
+		if err != nil {
+			return res, nil
 		}
 	}
 

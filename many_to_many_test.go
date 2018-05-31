@@ -9,7 +9,179 @@ import (
 
 	"crawshaw.io/sqlite"
 	"github.com/itchio/hades"
+	"github.com/itchio/wharf/wtest"
 )
+
+type Language struct {
+	ID    int64
+	Words []*Word `hades:"many2many:language_words"`
+}
+
+type Word struct {
+	ID        string
+	Comment   string
+	Languages []*Language `hades:"many2many:language_words"`
+}
+
+type LanguageWord struct {
+	LanguageID int64  `hades:"primary_key;auto_increment:false"`
+	WordID     string `hades:"primary_key;auto_increment:false"`
+}
+
+func Test_ManyToMany(t *testing.T) {
+	models := []interface{}{&Language{}, &Word{}, &LanguageWord{}}
+	withContext(t, models, func(conn *sqlite.Conn, c *hades.Context) {
+		fr := &Language{
+			ID: 123,
+			Words: []*Word{
+				{ID: "Plume"},
+				{ID: "Week-end"},
+			},
+		}
+		t.Logf("saving just fr")
+		wtest.Must(t, c.Save(conn, &hades.SaveParams{
+			Record: fr,
+		}))
+
+		assertCount := func(model interface{}, expectedCount int64) {
+			t.Helper()
+			var count int64
+			count, err := c.Count(conn, model, builder.NewCond())
+			wtest.Must(t, err)
+			assert.EqualValues(t, expectedCount, count)
+		}
+		assertCount(&Language{}, 1)
+		assertCount(&Word{}, 2)
+		assertCount(&LanguageWord{}, 2)
+
+		en := &Language{
+			ID: 456,
+			Words: []*Word{
+				{ID: "Plume"},
+				{ID: "Week-end"},
+			},
+		}
+		t.Logf("saving fr+en")
+		wtest.Must(t, c.Save(conn, &hades.SaveParams{
+			Record: []*Language{fr, en},
+		}))
+
+		assertCount(&Language{}, 2)
+		assertCount(&Word{}, 2)
+		assertCount(&LanguageWord{}, 4)
+
+		t.Logf("saving without culling ('add' words to english)")
+		en.Words = []*Word{
+			{ID: "Wreck"},
+			{ID: "Nervous"},
+		}
+		wtest.Must(t, c.Save(conn, &hades.SaveParams{
+			Record:   []*Language{en},
+			DontCull: []interface{}{&LanguageWord{}},
+		}))
+
+		assertCount(&Language{}, 2)
+		assertCount(&Word{}, 4)
+		assertCount(&LanguageWord{}, 6)
+
+		t.Logf("replacing all english words")
+		wtest.Must(t, c.Save(conn, &hades.SaveParams{
+			Record: []*Language{en},
+		}))
+
+		assertCount(&Language{}, 2)
+		assertCount(&Word{}, 4)
+		assertCount(&LanguageWord{}, 4)
+
+		t.Logf("adding commentary")
+		en.Words[0].Comment = "punk band reference"
+		wtest.Must(t, c.Save(conn, &hades.SaveParams{
+			Record: []*Language{en},
+		}))
+
+		assertCount(&Language{}, 2)
+		assertCount(&Word{}, 4)
+		assertCount(&LanguageWord{}, 4)
+
+		{
+			w := &Word{}
+			wtest.Must(t, c.SelectOne(conn, w, builder.Eq{"id": "Wreck"}))
+			assert.EqualValues(t, "punk band reference", w.Comment)
+		}
+
+		langs := []*Language{
+			{ID: fr.ID},
+			{ID: en.ID},
+		}
+		err := c.Preload(conn, &hades.PreloadParams{
+			Record: langs,
+			Fields: []hades.PreloadField{
+				{Name: "Words"},
+			},
+		})
+		// many_to_many preload is not implemented
+		assert.Error(t, err)
+	})
+}
+
+type Profile struct {
+	ID           int64
+	ProfileGames []*ProfileGame
+}
+
+type Game struct {
+	ID    int64
+	Title string
+}
+
+type ProfileGame struct {
+	ProfileID int64 `hades:"primary_key;auto_increment:false"`
+	Profile   *Profile
+
+	GameID int64 `hades:"primary_key;auto_increment:false"`
+	Game   *Game
+
+	Order int64
+}
+
+func Test_ManyToManyRevenge(t *testing.T) {
+	models := []interface{}{&Profile{}, &ProfileGame{}, &Game{}}
+
+	withContext(t, models, func(conn *sqlite.Conn, c *hades.Context) {
+		makeProfile := func() *Profile {
+			return &Profile{
+				ID: 389,
+				ProfileGames: []*ProfileGame{
+					{
+						Order: 1,
+						Game: &Game{
+							ID:    58372,
+							Title: "First offensive",
+						},
+					},
+					{
+						Order: 5,
+						Game: &Game{
+							ID:    235971,
+							Title: "Seconds until midnight",
+						},
+					},
+					{
+						Order: 7,
+						Game: &Game{
+							ID:    10598,
+							Title: "Three was company",
+						},
+					},
+				},
+			}
+		}
+		p := makeProfile()
+		c.Save(conn, &hades.SaveParams{
+			Record: p,
+		})
+	})
+}
 
 type Piece struct {
 	ID      int64

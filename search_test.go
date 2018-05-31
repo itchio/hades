@@ -9,6 +9,8 @@ import (
 func Test_Search(t *testing.T) {
 	assert.EqualValues(t, "x", Search().Apply("x"))
 	assert.EqualValues(t, "x LIMIT 1", Search().Limit(1).Apply("x"))
+	assert.EqualValues(t, "x LIMIT -1 OFFSET 1", Search().Offset(1).Apply("x"))
+	assert.EqualValues(t, "x LIMIT 10 OFFSET 5", Search().Offset(5).Limit(10).Apply("x"))
 	assert.EqualValues(t, "x ORDER BY id desc", Search().OrderBy("id desc").Apply("x"))
 	assert.EqualValues(t, "x ORDER BY id asc", Search().OrderBy("id asc").Apply("x"))
 	assert.EqualValues(t, "x ORDER BY id asc, created_at desc", Search().OrderBy("id asc").OrderBy("created_at desc").Apply("x"))
