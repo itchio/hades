@@ -100,7 +100,7 @@ func (c *Context) saveJoins(params *SaveParams, conn *sqlite.Conn, mtm *ManyToMa
 			} else {
 				// if not passed an explicit record, make it ourselves
 				// that typically means the join table doesn't have additional
-				// columns and is a simple many2many
+				// columns and is a simple many_to_many
 				eq := builder.Eq{
 					mtm.SourceDBName: sourceKey,
 					mtm.DestinDBName: joinRec.DestinKey,

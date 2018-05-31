@@ -14,18 +14,18 @@ import (
 
 type Language struct {
 	ID    int64
-	Words []*Word `hades:"many2many:language_words"`
+	Words []*Word `hades:"many_to_many:language_words"`
 }
 
 type Word struct {
 	ID        string
 	Comment   string
-	Languages []*Language `hades:"many2many:language_words"`
+	Languages []*Language `hades:"many_to_many:language_words"`
 }
 
 type LanguageWord struct {
-	LanguageID int64  `hades:"primary_key;auto_increment:false"`
-	WordID     string `hades:"primary_key;auto_increment:false"`
+	LanguageID int64  `hades:"primary_key"`
+	WordID     string `hades:"primary_key"`
 }
 
 func Test_ManyToMany(t *testing.T) {
@@ -135,10 +135,10 @@ type Game struct {
 }
 
 type ProfileGame struct {
-	ProfileID int64 `hades:"primary_key;auto_increment:false"`
+	ProfileID int64 `hades:"primary_key"`
 	Profile   *Profile
 
-	GameID int64 `hades:"primary_key;auto_increment:false"`
+	GameID int64 `hades:"primary_key"`
 	Game   *Game
 
 	Order int64
@@ -185,13 +185,13 @@ func Test_ManyToManyRevenge(t *testing.T) {
 
 type Piece struct {
 	ID      int64
-	Authors []*Author `hades:"many2many:piece_authors"`
+	Authors []*Author `hades:"many_to_many:piece_authors"`
 }
 
 type Author struct {
 	ID     int64
 	Name   string
-	Pieces []*Piece `hades:"many2many:piece_authors"`
+	Pieces []*Piece `hades:"many_to_many:piece_authors"`
 }
 
 type PieceAuthor struct {

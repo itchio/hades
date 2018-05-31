@@ -2,7 +2,7 @@ package hades
 
 import "reflect"
 
-// JoinTableHandlerInterface is an interface for how to handle many2many relations
+// JoinTableHandlerInterface is an interface for how to handle many_to_many relations
 type JoinTableHandlerInterface interface {
 	// initialize join table handler
 	Setup(relationship *Relationship, tableName string, source reflect.Type, destination reflect.Type)

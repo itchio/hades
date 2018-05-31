@@ -19,13 +19,13 @@ func Test_BelongsTo(t *testing.T) {
 	type Human struct {
 		ID     int64
 		FateID int64
-		Fate   *Fate `hades:"ignore"`
+		Fate   *Fate
 	}
 
 	type Joke struct {
 		ID      string
 		HumanID int64
-		Human   *Human `hades:"ignore"`
+		Human   *Human
 	}
 
 	models := []interface{}{&Human{}, &Fate{}, &Joke{}}

@@ -1,6 +1,7 @@
 package hades
 
 import (
+	"fmt"
 	"go/ast"
 	"reflect"
 	"strings"
@@ -55,7 +56,7 @@ type StructField struct {
 	IsSquashed     bool
 	SquashedFields []*StructField
 	Tag            reflect.StructTag
-	TagSettings    map[string]string
+	TagSettings    map[TagSetting]string
 	Struct         reflect.StructField
 	IsForeignKey   bool
 	Relationship   *Relationship
@@ -82,6 +83,30 @@ func getForeignField(column string, fields []*StructField) *StructField {
 		}
 	}
 	return nil
+}
+
+type TagSetting string
+
+const (
+	TagSettingIgnore                         TagSetting = "-"
+	TagSettingSquash                         TagSetting = "squash"
+	TagSettingManyToMany                     TagSetting = "many_to_many"
+	TagSettingPrimaryKey                     TagSetting = "primary_key"
+	TagSettingForeignKey                     TagSetting = "foreign_key"
+	TagSettingAssociationForeignKey          TagSetting = "association_foreign_key"
+	TagSettingJoinTableForeignKey            TagSetting = "join_table_foreign_key"
+	TagSettingAssociationJoinTableForeignKey TagSetting = "association_join_table_foreign_key"
+)
+
+var ValidTagSettings = map[TagSetting]bool{
+	TagSettingIgnore:                         true,
+	TagSettingSquash:                         true,
+	TagSettingManyToMany:                     true,
+	TagSettingPrimaryKey:                     true,
+	TagSettingForeignKey:                     true,
+	TagSettingAssociationForeignKey:          true,
+	TagSettingJoinTableForeignKey:            true,
+	TagSettingAssociationJoinTableForeignKey: true,
 }
 
 // GetModelStruct get value's model struct, relationships based on struct and tag definition
@@ -119,20 +144,20 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 				Name:        fieldStruct.Name,
 				Names:       []string{fieldStruct.Name},
 				Tag:         fieldStruct.Tag,
-				TagSettings: parseTagSetting(fieldStruct.Tag),
+				TagSettings: parseTagSetting(reflectType, fieldStruct.Name, fieldStruct.Tag),
 			}
 
 			// is ignored field
-			if _, ok := field.TagSettings["-"]; ok {
+			if _, ok := field.TagSettings[TagSettingIgnore]; ok {
 				field.IsIgnored = true
-			} else if _, ok := field.TagSettings["SQUASH"]; ok {
+			} else if _, ok := field.TagSettings[TagSettingSquash]; ok {
 				field.IsSquashed = true
 				nestedModelStruct := scope.ctx.NewScope(reflect.Zero(field.Struct.Type).Interface()).GetModelStruct()
 				for _, sf := range nestedModelStruct.StructFields {
 					field.SquashedFields = append(field.SquashedFields, sf)
 				}
 			} else {
-				if _, ok := field.TagSettings["PRIMARY_KEY"]; ok {
+				if _, ok := field.TagSettings[TagSettingPrimaryKey]; ok {
 					field.IsPrimaryKey = true
 					modelStruct.PrimaryFields = append(modelStruct.PrimaryFields, field)
 				}
@@ -159,13 +184,11 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 								elemType               = field.Struct.Type
 							)
 
-							if foreignKey := field.TagSettings["FOREIGNKEY"]; foreignKey != "" {
+							if foreignKey := field.TagSettings[TagSettingForeignKey]; foreignKey != "" {
 								foreignKeys = strings.Split(foreignKey, ",")
 							}
 
-							if foreignKey := field.TagSettings["ASSOCIATION_FOREIGNKEY"]; foreignKey != "" {
-								associationForeignKeys = strings.Split(foreignKey, ",")
-							} else if foreignKey := field.TagSettings["ASSOCIATIONFOREIGNKEY"]; foreignKey != "" {
+							if foreignKey := field.TagSettings[TagSettingAssociationForeignKey]; foreignKey != "" {
 								associationForeignKeys = strings.Split(foreignKey, ",")
 							}
 
@@ -174,13 +197,13 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 							}
 
 							if elemType.Kind() == reflect.Struct {
-								if many2many := field.TagSettings["MANY2MANY"]; many2many != "" {
+								if manyToMany := field.TagSettings[TagSettingManyToMany]; manyToMany != "" {
 									relationship.Kind = "many_to_many"
 
 									{ // Foreign Keys for Source
 										joinTableDBNames := []string{}
 
-										if foreignKey := field.TagSettings["JOINTABLE_FOREIGNKEY"]; foreignKey != "" {
+										if foreignKey := field.TagSettings[TagSettingAssociationJoinTableForeignKey]; foreignKey != "" {
 											joinTableDBNames = strings.Split(foreignKey, ",")
 										}
 
@@ -211,7 +234,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 									{ // Foreign Keys for Association (Destination)
 										associationJoinTableDBNames := []string{}
 
-										if foreignKey := field.TagSettings["ASSOCIATION_JOINTABLE_FOREIGNKEY"]; foreignKey != "" {
+										if foreignKey := field.TagSettings[TagSettingAssociationJoinTableForeignKey]; foreignKey != "" {
 											associationJoinTableDBNames = strings.Split(foreignKey, ",")
 										}
 
@@ -240,7 +263,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 									}
 
 									joinTableHandler := JoinTableHandler{}
-									joinTableHandler.Setup(relationship, many2many, reflectType, elemType)
+									joinTableHandler.Setup(relationship, manyToMany, reflectType, elemType)
 									relationship.JoinTableHandler = &joinTableHandler
 									field.Relationship = relationship
 								} else {
@@ -322,13 +345,11 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 								tagAssociationForeignKeys []string
 							)
 
-							if foreignKey := field.TagSettings["FOREIGNKEY"]; foreignKey != "" {
+							if foreignKey := field.TagSettings[TagSettingForeignKey]; foreignKey != "" {
 								tagForeignKeys = strings.Split(foreignKey, ",")
 							}
 
-							if foreignKey := field.TagSettings["ASSOCIATION_FOREIGNKEY"]; foreignKey != "" {
-								tagAssociationForeignKeys = strings.Split(foreignKey, ",")
-							} else if foreignKey := field.TagSettings["ASSOCIATIONFOREIGNKEY"]; foreignKey != "" {
+							if foreignKey := field.TagSettings[TagSettingAssociationForeignKey]; foreignKey != "" {
 								tagAssociationForeignKeys = strings.Split(foreignKey, ",")
 							}
 
@@ -488,17 +509,31 @@ func (scope *Scope) GetStructFields() (fields []*StructField) {
 	return scope.GetModelStruct().StructFields
 }
 
-func parseTagSetting(tags reflect.StructTag) map[string]string {
-	setting := map[string]string{}
-	for _, str := range []string{tags.Get("hades")} {
+func parseTagSetting(reflectType reflect.Type, fieldName string, tags reflect.StructTag) map[TagSetting]string {
+	setting := map[TagSetting]string{}
+	if str, ok := tags.Lookup("hades"); ok {
 		tags := strings.Split(str, ";")
 		for _, value := range tags {
 			v := strings.Split(value, ":")
-			k := strings.TrimSpace(strings.ToUpper(v[0]))
+			k := strings.TrimSpace(v[0])
+
+			if _, ok := ValidTagSettings[TagSetting(k)]; !ok {
+				var validTags []string
+				for vt := range ValidTagSettings {
+					validTags = append(validTags, string(vt))
+				}
+				panic(fmt.Sprintf("invalid tag setting %q for field %s of type %v - valid tag settings are %s",
+					k,
+					fieldName,
+					reflectType,
+					strings.Join(validTags, ", "),
+				))
+			}
+
 			if len(v) >= 2 {
-				setting[k] = strings.Join(v[1:], ":")
+				setting[TagSetting(k)] = strings.Join(v[1:], ":")
 			} else {
-				setting[k] = k
+				setting[TagSetting(k)] = k
 			}
 		}
 	}
