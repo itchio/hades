@@ -24,6 +24,10 @@ func (c *Context) Scan(stmt *sqlite.Stmt, structFields []*StructField, result re
 			return nil
 		}
 
+		if !sf.IsNormal {
+			return nil
+		}
+
 		fieldEl := field
 		typ := field.Type()
 		wasPtr := false
