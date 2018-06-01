@@ -1,7 +1,6 @@
 package hades_test
 
 import (
-	"reflect"
 	"testing"
 
 	"crawshaw.io/sqlite"
@@ -48,28 +47,16 @@ func Test_Scan(t *testing.T) {
 			},
 		}))
 
-		type Row struct {
+		var rows []struct {
 			Game          `hades:"squash"`
 			GameEmbedData `hades:"squash"`
 		}
-		var rows []Row
-		rowScope := c.NewScope(&Row{})
-		gameTable := c.TableName(&Game{})
-		embedTable := c.TableName(&GameEmbedData{})
 		wtest.Must(t, c.ExecWithSearch(conn,
-			builder.Select(gameTable+".*", embedTable+".*").
-				From(gameTable).
-				LeftJoin(embedTable, builder.Expr(embedTable+".game_id = "+gameTable+".id")),
-			hades.Search().OrderBy(gameTable+".id ASC"),
-			func(stmt *sqlite.Stmt) error {
-				var row Row
-				err := c.Scan(stmt, rowScope.GetStructFields(), reflect.ValueOf(&row).Elem())
-				if err != nil {
-					return err
-				}
-				rows = append(rows, row)
-				return nil
-			},
+			builder.Select("games.*", "game_embed_data.*").
+				From("games").
+				LeftJoin("game_embed_data", builder.Expr("game_embed_data.game_id = games.id")),
+			hades.Search().OrderBy("games.id ASC"),
+			c.IntoRowsScanner(&rows),
 		))
 
 		assert.EqualValues(t, 2, len(rows))
