@@ -22,29 +22,28 @@ import (
 //   })
 //
 func (c *Context) ScanIntoRows(stmt *sqlite.Stmt, slicePtr interface{}) error {
-	scan, err := c.IntoRowsScanner(slicePtr)
-	if err != nil {
-		return err
-	}
-	return scan(stmt)
+	return c.IntoRowsScanner(slicePtr)(stmt)
 }
 
 // NewScannerIntoRows returns a ResultFn that scans all fields into what
 // is typically an anonymous struct containing multiple squashed models.
 // See ScanIntoRows.
-func (c *Context) IntoRowsScanner(slicePtr interface{}) (ResultFn, error) {
+func (c *Context) IntoRowsScanner(slicePtr interface{}) ResultFn {
 	slicePtrVal := reflect.ValueOf(slicePtr)
 	sliceVal := slicePtrVal.Elem()
 	sliceTyp := sliceVal.Type()
 	if sliceTyp.Kind() != reflect.Slice {
-		return nil, errors.Errorf("ScanIntoRows expects a slice, got a %v", sliceTyp)
+		err := errors.Errorf("ScanIntoRows expects a slice, got a %v", sliceTyp)
+		return func(stmt *sqlite.Stmt) error {
+			return err
+		}
 	}
 
 	modelTyp := sliceTyp.Elem()
 	recordTemplate := reflect.New(modelTyp).Elem()
 	scope := c.NewScope(recordTemplate.Interface())
 
-	var resultFn ResultFn = func(stmt *sqlite.Stmt) error {
+	return func(stmt *sqlite.Stmt) error {
 		recordVal := reflect.New(modelTyp).Elem()
 		err := c.Scan(stmt, scope.GetStructFields(), recordVal)
 		if err != nil {
@@ -53,7 +52,6 @@ func (c *Context) IntoRowsScanner(slicePtr interface{}) (ResultFn, error) {
 		sliceVal.Set(reflect.Append(sliceVal, recordVal))
 		return nil
 	}
-	return resultFn, nil
 }
 
 // Scan is used to scan a single sqlite statement into a model struct
