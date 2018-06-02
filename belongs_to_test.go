@@ -36,22 +36,18 @@ func Test_BelongsTo(t *testing.T) {
 			Desc: "Consumer-grade flamethrowers",
 		}
 		t.Log("Saving one fate")
-		wtest.Must(t, c.SaveOne(conn, someFate))
+		wtest.Must(t, c.Save(conn, someFate))
 
 		lea := &Human{
 			ID:     3,
 			FateID: someFate.ID,
 		}
 		t.Log("Saving one human")
-		wtest.Must(t, c.SaveOne(conn, lea))
+		wtest.Must(t, c.Save(conn, lea))
 
 		t.Log("Preloading lea")
-		c.Preload(conn, &hades.PreloadParams{
-			Record: lea,
-			Fields: []hades.PreloadField{
-				{Name: "Fate"},
-			},
-		})
+		c.Preload(conn, lea, hades.Assoc("Fate"))
+
 		assert.NotNil(t, lea.Fate)
 		assert.EqualValues(t, someFate.Desc, lea.Fate.Desc)
 	})
@@ -64,10 +60,7 @@ func Test_BelongsTo(t *testing.T) {
 				Desc: "Book authorship",
 			},
 		}
-		c.Save(conn, &hades.SaveParams{
-			Record: lea,
-			Assocs: []string{"Fate"},
-		})
+		wtest.Must(t, c.Save(conn, lea, hades.Assoc("Fate")))
 
 		fate := &Fate{}
 		found, err := c.SelectOne(conn, fate, builder.Eq{"id": 421})
@@ -81,19 +74,19 @@ func Test_BelongsTo(t *testing.T) {
 			ID:   3,
 			Desc: "Space rodeo",
 		}
-		wtest.Must(t, c.SaveOne(conn, fate))
+		wtest.Must(t, c.Save(conn, fate))
 
 		human := &Human{
 			ID:     6,
 			FateID: 3,
 		}
-		wtest.Must(t, c.SaveOne(conn, human))
+		wtest.Must(t, c.Save(conn, human))
 
 		joke := &Joke{
 			ID:      "neuf",
 			HumanID: 6,
 		}
-		wtest.Must(t, c.SaveOne(conn, joke))
+		wtest.Must(t, c.Save(conn, joke))
 
 		c.Preload(conn, &hades.PreloadParams{
 			Record: joke,

@@ -52,7 +52,7 @@ func Test_Null(t *testing.T) {
 			ID: 123,
 		}
 
-		ordie(c.SaveOne(conn, d))
+		ordie(c.Save(conn, d))
 		{
 			dd := &Download{}
 			found, err := c.SelectOne(conn, dd, builder.Eq{"id": 123})
@@ -74,7 +74,7 @@ func Test_Null(t *testing.T) {
 		finishedAt := time.Now()
 		d.FinishedAt = &finishedAt
 
-		ordie(c.SaveOne(conn, d))
+		ordie(c.Save(conn, d))
 
 		{
 			dd := &Download{}
@@ -89,7 +89,7 @@ func Test_Null(t *testing.T) {
 		}
 
 		d.ErrorMessage = nil
-		ordie(c.SaveOne(conn, d))
+		ordie(c.Save(conn, d))
 
 		{
 			dd := &Download{}

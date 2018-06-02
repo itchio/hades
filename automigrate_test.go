@@ -46,7 +46,7 @@ func Test_AutoMigrate(t *testing.T) {
 		assert.False(t, pti[1].PrimaryKey)
 		assert.False(t, pti[1].NotNull)
 
-		ordie(c.SaveOne(conn, &User{ID: 123, FirstName: "Joanna"}))
+		ordie(c.Save(conn, &User{ID: 123, FirstName: "Joanna"}))
 		u := &User{}
 		foundUser, err := c.SelectOne(conn, u, builder.Eq{"id": 123})
 		ordie(err)
@@ -193,7 +193,7 @@ func Test_AutoMigrateAllValidTypes(t *testing.T) {
 		FirstName: "Jeremy",
 		HeartRate: 3.14,
 	}
-	ordie(c.SaveOne(conn, h1))
+	ordie(c.Save(conn, h1))
 
 	h2 := &Humanoid{}
 	found, err := c.SelectOne(conn, h2, builder.Eq{"id": 12})

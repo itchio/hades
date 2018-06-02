@@ -33,7 +33,7 @@ func Test_Update(t *testing.T) {
 		var count int64
 		var err error
 
-		wtest.Must(t, c.SaveOne(conn, mistakes))
+		wtest.Must(t, c.Save(conn, mistakes))
 
 		count, err = c.Count(conn, &Mistake{}, builder.NewCond())
 		wtest.Must(t, err)

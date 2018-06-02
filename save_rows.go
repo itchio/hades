@@ -12,7 +12,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (c *Context) saveRows(conn *sqlite.Conn, params *SaveParams, inputIface interface{}) error {
+func (c *Context) saveRows(conn *sqlite.Conn, mode AssocMode, inputIface interface{}) error {
 	// inputIFace is a `[]interface{}`
 	input := reflect.ValueOf(inputIface)
 	if input.Kind() != reflect.Slice {
@@ -136,7 +136,7 @@ func (c *Context) saveRows(conn *sqlite.Conn, params *SaveParams, inputIface int
 			}
 		}
 
-		err = c.saveJoins(params, conn, mtm)
+		err = c.saveJoins(conn, mode, mtm)
 		if err != nil {
 			return errors.Wrap(err, "saving joins")
 		}

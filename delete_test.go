@@ -37,7 +37,7 @@ func Test_Delete(t *testing.T) {
 		var count int64
 		var err error
 
-		wtest.Must(t, c.SaveOne(conn, stories))
+		wtest.Must(t, c.Save(conn, stories))
 
 		count, err = c.Count(conn, &Story{}, builder.NewCond())
 		wtest.Must(t, err)

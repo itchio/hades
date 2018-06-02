@@ -237,7 +237,7 @@ func Test_ManyToManyThorough(t *testing.T) {
 
 	{
 		beforeSaveQueryCount := c.QueryCount
-		ordie(c.SaveOne(conn, p))
+		ordie(c.Save(conn, p))
 
 		pieceSelect := 1
 		pieceInsert := 1
@@ -271,7 +271,7 @@ func Test_ManyToManyThorough(t *testing.T) {
 
 	{
 		beforeSaveQueryCount := c.QueryCount
-		ordie(c.SaveOne(conn, p))
+		ordie(c.Save(conn, p))
 
 		pieceSelect := 1
 
@@ -297,7 +297,7 @@ func Test_ManyToManyThorough(t *testing.T) {
 
 	{
 		beforeSaveQueryCount := c.QueryCount
-		ordie(c.SaveOne(conn, p))
+		ordie(c.Save(conn, p))
 
 		pieceSelect := 1
 
@@ -328,7 +328,7 @@ func Test_ManyToManyThorough(t *testing.T) {
 
 	{
 		beforeSaveQueryCount := c.QueryCount
-		ordie(c.SaveOne(conn, p))
+		ordie(c.Save(conn, p))
 
 		pieceSelect := 1
 
@@ -358,14 +358,14 @@ func Test_ManyToManyThorough(t *testing.T) {
 		})
 	}
 
-	ordie(c.SaveOne(conn, p))
+	ordie(c.Save(conn, p))
 
 	assertCount(&Piece{}, 1)
 	assertCount(&Author{}, len(originalAuthors)+1+1200)
 	assertCount(&PieceAuthor{}, len(p.Authors))
 
 	p.Authors = nil
-	ordie(c.SaveOne(conn, p))
+	ordie(c.Save(conn, p))
 
 	assertCount(&Piece{}, 1)
 	assertCount(&Author{}, len(originalAuthors)+1+1200)

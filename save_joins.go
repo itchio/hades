@@ -8,15 +8,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (c *Context) saveJoins(params *SaveParams, conn *sqlite.Conn, mtm *ManyToMany) error {
-	cull := true
-	for _, dc := range params.DontCull {
-		if mtm.JoinTable == ToDBName(c.NewScope(dc).TableName()) {
-			cull = false
-			break
-		}
-	}
-
+func (c *Context) saveJoins(conn *sqlite.Conn, mode AssocMode, mtm *ManyToMany) error {
 	joinType := reflect.PtrTo(mtm.Scope.GetModelStruct().ModelType)
 
 	getDestinKey := func(v reflect.Value) interface{} {
@@ -78,14 +70,10 @@ func (c *Context) saveJoins(params *SaveParams, conn *sqlite.Conn, mtm *ManyToMa
 			}
 		}
 
-		if !cull {
-			// Not deleting extra join records, as requested
-		} else {
-			if len(deletes) > 0 {
-				err := c.deletePagedByPK(conn, mtm.JoinTable, mtm.DestinDBName, deletes, builder.Eq{mtm.SourceDBName: sourceKey})
-				if err != nil {
-					return errors.Wrap(err, "deleting extraneous relations")
-				}
+		if mode == AssocModeReplace && len(deletes) > 0 {
+			err := c.deletePagedByPK(conn, mtm.JoinTable, mtm.DestinDBName, deletes, builder.Eq{mtm.SourceDBName: sourceKey})
+			if err != nil {
+				return errors.Wrap(err, "deleting extraneous relations")
 			}
 		}
 

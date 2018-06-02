@@ -43,12 +43,12 @@ func Test_HasMany(t *testing.T) {
 				{ID: 11, Label: "Ability to not repeat oneself"},
 			},
 		}
-		wtest.Must(t, c.Save(conn, &hades.SaveParams{Record: p1}))
+		wtest.Must(t, c.Save(conn, p1, hades.Assoc("Qualities")))
 		assertCount(&Programmer{}, 1)
 		assertCount(&Quality{}, 3)
 
 		p1.Qualities[2].Label = "Inspiration again"
-		wtest.Must(t, c.Save(conn, &hades.SaveParams{Record: p1}))
+		wtest.Must(t, c.Save(conn, p1, hades.Assoc("Qualities")))
 		assertCount(&Programmer{}, 1)
 		assertCount(&Quality{}, 3)
 		{
@@ -68,20 +68,15 @@ func Test_HasMany(t *testing.T) {
 		}
 		programmers := []*Programmer{p1, p2}
 		wtest.Must(t, c.Save(conn, &hades.SaveParams{Record: programmers}))
+		wtest.Must(t, c.Save(conn, programmers, hades.Assoc("Qualities")))
 		assertCount(&Programmer{}, 2)
 		assertCount(&Quality{}, 5)
 
 		p1bis := &Programmer{ID: 3}
-		pp := &hades.PreloadParams{
-			Record: p1bis,
-			Fields: []hades.PreloadField{
-				{Name: "Qualities"},
-			},
-		}
-		wtest.Must(t, c.Preload(conn, pp))
+		wtest.Must(t, c.Preload(conn, p1bis, hades.Field("Qualities")))
 		assert.EqualValues(t, 3, len(p1bis.Qualities), "preload has_many")
 
-		wtest.Must(t, c.Preload(conn, pp))
+		wtest.Must(t, c.Preload(conn, p1bis, hades.Field("Qualities")))
 		assert.EqualValues(t, 3, len(p1bis.Qualities), "preload replaces, doesn't append")
 
 		pp.Fields[0] = hades.PreloadField{

@@ -161,7 +161,7 @@ func Test_SquashedFull(t *testing.T) {
 				},
 			},
 		}
-		wtest.Must(t, c.SaveOne(conn, fu))
+		wtest.Must(t, c.Save(conn, fu))
 
 		u := &FakeUser{}
 		found, err := c.SelectOne(conn, u, builder.NewCond())
@@ -182,7 +182,7 @@ func Test_SquashedFull(t *testing.T) {
 
 		fu.Games[2].Traits.Storied = false
 		fu.Games[2].Traits.Ubiquitous = false
-		wtest.Must(t, c.SaveOne(conn, fu))
+		wtest.Must(t, c.Save(conn, fu))
 
 		wtest.Must(t, c.Preload(conn, &hades.PreloadParams{
 			Record: u,

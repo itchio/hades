@@ -28,7 +28,7 @@ func Test_Scan(t *testing.T) {
 		&GameEmbedData{},
 	}
 	withContext(t, models, func(conn *sqlite.Conn, c *hades.Context) {
-		wtest.Must(t, c.SaveOne(conn, []*Game{
+		wtest.Must(t, c.Save(conn, []*Game{
 			&Game{
 				ID:    24,
 				Title: "Jazz Jackrabbit",
