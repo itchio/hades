@@ -34,5 +34,11 @@ func withContext(t *testing.T, models []interface{}, f WithContextFunc) {
 
 	wtest.Must(t, c.AutoMigrate(conn))
 
+	defer func() {
+		c.ScopeMap.Each(func(scope *hades.Scope) error {
+			return c.ExecRaw(conn, "DROP TABLE "+scope.TableName(), nil)
+		})
+	}()
+
 	f(conn, c)
 }

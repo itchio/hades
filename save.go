@@ -147,6 +147,19 @@ func (c *Context) SaveNoTransaction(conn *sqlite.Conn, rec interface{}, opts ...
 
 	walk = func(p reflect.Value, pri *RecordInfo, v reflect.Value, vri *RecordInfo, persist bool) error {
 		if v.Kind() == reflect.Slice {
+			cull := false
+			if vri.Relationship != nil {
+				switch vri.Relationship.Kind {
+				case "has_many":
+					if vri.Field.Mode() == AssocModeReplace {
+						cull = true
+					}
+				case "many_to_many":
+					// culling is done later, but let's record the ManyToMany now
+					vri.ManyToMany.Mark(p)
+				}
+			}
+
 			for i := 0; i < v.Len(); i++ {
 				err := visit(p, pri, v.Index(i), vri, persist)
 				if err != nil {
@@ -154,10 +167,7 @@ func (c *Context) SaveNoTransaction(conn *sqlite.Conn, rec interface{}, opts ...
 				}
 			}
 
-			if vri.Relationship != nil &&
-				vri.Relationship.Kind == "has_many" &&
-				vri.Field.Mode() == AssocModeReplace {
-
+			if cull {
 				var oldValuePKs []string
 				rel := vri.Relationship
 

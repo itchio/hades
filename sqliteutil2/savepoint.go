@@ -55,7 +55,7 @@ func Save(conn *sqlite.Conn) (releaseFn func(*error)) {
 
 	releaseFn, err := savepoint(conn, name)
 	if err != nil {
-		if sqlite.ErrCode(err) == sqlite.SQLITE_INTERRUPT {
+		if sqlite.ErrCode(errors.Cause(err)) == sqlite.SQLITE_INTERRUPT {
 			return func(errp *error) {
 				if *errp == nil {
 					*errp = err

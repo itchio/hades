@@ -360,7 +360,7 @@ func Test_ManyToManyThorough(t *testing.T) {
 		})
 	}
 
-	ordie(c.Save(conn, p))
+	ordie(c.Save(conn, p, hades.AssocReplace("Authors")))
 
 	assertCount(&Piece{}, 1)
 	assertCount(&Author{}, len(originalAuthors)+1+1200)
