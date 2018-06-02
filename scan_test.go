@@ -45,7 +45,7 @@ func Test_Scan(t *testing.T) {
 					Height: 240,
 				},
 			},
-		}))
+		}, hades.Assoc("EmbedData")))
 
 		var rows []struct {
 			Game          `hades:"squash"`

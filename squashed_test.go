@@ -161,7 +161,7 @@ func Test_SquashedFull(t *testing.T) {
 				},
 			},
 		}
-		wtest.Must(t, c.Save(conn, fu))
+		wtest.Must(t, c.Save(conn, fu, hades.Assoc("Games")))
 
 		u := &FakeUser{}
 		found, err := c.SelectOne(conn, u, builder.NewCond())
@@ -170,26 +170,20 @@ func Test_SquashedFull(t *testing.T) {
 
 		assert.EqualValues(t, 15, u.ID)
 
-		wtest.Must(t, c.Preload(conn, &hades.PreloadParams{
-			Record: u,
-			Fields: []hades.PreloadField{
-				{Name: "Games", Search: hades.Search().OrderBy("id ASC").Offset(1)},
-			},
-		}))
+		wtest.Must(t, c.Preload(conn, u,
+			hades.AssocWithSearch("Games", hades.Search().OrderBy("id ASC").Offset(1)),
+		))
 		assert.EqualValues(t, 2, len(u.Games))
 		assert.EqualValues(t, FakeGameTraits{Ubiquitous: true}, u.Games[0].Traits)
 		assert.EqualValues(t, FakeGameTraits{Storied: true, Ubiquitous: true}, u.Games[1].Traits)
 
 		fu.Games[2].Traits.Storied = false
 		fu.Games[2].Traits.Ubiquitous = false
-		wtest.Must(t, c.Save(conn, fu))
+		wtest.Must(t, c.Save(conn, fu, hades.Assoc("Games")))
 
-		wtest.Must(t, c.Preload(conn, &hades.PreloadParams{
-			Record: u,
-			Fields: []hades.PreloadField{
-				{Name: "Games", Search: hades.Search().OrderBy("id ASC").Offset(2).Limit(1)},
-			},
-		}))
+		wtest.Must(t, c.Preload(conn, u,
+			hades.AssocWithSearch("Games", hades.Search().OrderBy("id ASC").Offset(2).Limit(1)),
+		))
 		assert.EqualValues(t, 1, len(u.Games))
 		assert.EqualValues(t, 6, u.Games[0].ID)
 		assert.EqualValues(t, FakeGameTraits{Ubiquitous: false, Storied: false}, u.Games[0].Traits)

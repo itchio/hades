@@ -39,9 +39,7 @@ func Test_ManyToMany(t *testing.T) {
 			},
 		}
 		t.Logf("saving just fr")
-		wtest.Must(t, c.Save(conn, &hades.SaveParams{
-			Record: fr,
-		}))
+		wtest.Must(t, c.Save(conn, fr, hades.Assoc("Words")))
 
 		assertCount := func(model interface{}, expectedCount int64) {
 			t.Helper()
@@ -62,10 +60,7 @@ func Test_ManyToMany(t *testing.T) {
 			},
 		}
 		t.Logf("saving fr+en")
-		wtest.Must(t, c.Save(conn, &hades.SaveParams{
-			Record: []*Language{fr, en},
-		}))
-
+		wtest.Must(t, c.Save(conn, []*Language{fr, en}, hades.Assoc("Words")))
 		assertCount(&Language{}, 2)
 		assertCount(&Word{}, 2)
 		assertCount(&LanguageWord{}, 4)
@@ -75,19 +70,14 @@ func Test_ManyToMany(t *testing.T) {
 			{ID: "Wreck"},
 			{ID: "Nervous"},
 		}
-		wtest.Must(t, c.Save(conn, &hades.SaveParams{
-			Record:   []*Language{en},
-			DontCull: []interface{}{&LanguageWord{}},
-		}))
+		wtest.Must(t, c.Save(conn, []*Language{en}, hades.Assoc("Words")))
 
 		assertCount(&Language{}, 2)
 		assertCount(&Word{}, 4)
 		assertCount(&LanguageWord{}, 6)
 
 		t.Logf("replacing all english words")
-		wtest.Must(t, c.Save(conn, &hades.SaveParams{
-			Record: []*Language{en},
-		}))
+		wtest.Must(t, c.Save(conn, []*Language{en}, hades.AssocReplace("Words")))
 
 		assertCount(&Language{}, 2)
 		assertCount(&Word{}, 4)
@@ -95,10 +85,7 @@ func Test_ManyToMany(t *testing.T) {
 
 		t.Logf("adding commentary")
 		en.Words[0].Comment = "punk band reference"
-		wtest.Must(t, c.Save(conn, &hades.SaveParams{
-			Record: []*Language{en},
-		}))
-
+		wtest.Must(t, c.Save(conn, []*Language{en}, hades.Assoc("Words")))
 		assertCount(&Language{}, 2)
 		assertCount(&Word{}, 4)
 		assertCount(&LanguageWord{}, 4)
@@ -115,12 +102,7 @@ func Test_ManyToMany(t *testing.T) {
 			{ID: fr.ID},
 			{ID: en.ID},
 		}
-		err := c.Preload(conn, &hades.PreloadParams{
-			Record: langs,
-			Fields: []hades.PreloadField{
-				{Name: "Words"},
-			},
-		})
+		err := c.Preload(conn, langs, hades.Assoc("Words"))
 		// many_to_many preload is not implemented
 		assert.Error(t, err)
 	})
@@ -179,9 +161,29 @@ func Test_ManyToManyRevenge(t *testing.T) {
 			}
 		}
 		p := makeProfile()
-		c.Save(conn, &hades.SaveParams{
-			Record: p,
-		})
+		wtest.Must(t, c.Save(conn, p,
+			hades.Assoc("ProfileGames",
+				hades.Assoc("Game"),
+			),
+		))
+
+		var names []struct {
+			Name string
+		}
+		wtest.Must(t, c.ExecWithSearch(conn,
+			builder.Select("games.title").
+				From("games").
+				LeftJoin("profile_games", builder.Expr("profile_games.game_id = games.id")),
+			hades.Search().OrderBy("profile_games.\"order\" ASC"),
+			c.IntoRowsScanner(&names),
+		))
+		assert.EqualValues(t, []struct {
+			Name string
+		}{
+			{"First offensive"},
+			{"Seconds until midnight"},
+			{"Three was company"},
+		}, names)
 	})
 }
 
@@ -237,7 +239,7 @@ func Test_ManyToManyThorough(t *testing.T) {
 
 	{
 		beforeSaveQueryCount := c.QueryCount
-		ordie(c.Save(conn, p))
+		ordie(c.Save(conn, p, hades.Assoc("Authors")))
 
 		pieceSelect := 1
 		pieceInsert := 1
@@ -271,7 +273,7 @@ func Test_ManyToManyThorough(t *testing.T) {
 
 	{
 		beforeSaveQueryCount := c.QueryCount
-		ordie(c.Save(conn, p))
+		ordie(c.Save(conn, p, hades.AssocReplace("Authors")))
 
 		pieceSelect := 1
 
@@ -297,7 +299,7 @@ func Test_ManyToManyThorough(t *testing.T) {
 
 	{
 		beforeSaveQueryCount := c.QueryCount
-		ordie(c.Save(conn, p))
+		ordie(c.Save(conn, p, hades.AssocReplace("Authors")))
 
 		pieceSelect := 1
 
@@ -328,7 +330,7 @@ func Test_ManyToManyThorough(t *testing.T) {
 
 	{
 		beforeSaveQueryCount := c.QueryCount
-		ordie(c.Save(conn, p))
+		ordie(c.Save(conn, p, hades.AssocReplace("Authors")))
 
 		pieceSelect := 1
 
@@ -365,7 +367,7 @@ func Test_ManyToManyThorough(t *testing.T) {
 	assertCount(&PieceAuthor{}, len(p.Authors))
 
 	p.Authors = nil
-	ordie(c.Save(conn, p))
+	ordie(c.Save(conn, p, hades.AssocReplace("Authors")))
 
 	assertCount(&Piece{}, 1)
 	assertCount(&Author{}, len(originalAuthors)+1+1200)

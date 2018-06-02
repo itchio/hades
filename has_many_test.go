@@ -67,40 +67,35 @@ func Test_HasMany(t *testing.T) {
 			},
 		}
 		programmers := []*Programmer{p1, p2}
-		wtest.Must(t, c.Save(conn, &hades.SaveParams{Record: programmers}))
 		wtest.Must(t, c.Save(conn, programmers, hades.Assoc("Qualities")))
 		assertCount(&Programmer{}, 2)
 		assertCount(&Quality{}, 5)
 
 		p1bis := &Programmer{ID: 3}
-		wtest.Must(t, c.Preload(conn, p1bis, hades.Field("Qualities")))
+		wtest.Must(t, c.Preload(conn, p1bis, hades.Assoc("Qualities")))
 		assert.EqualValues(t, 3, len(p1bis.Qualities), "preload has_many")
 
-		wtest.Must(t, c.Preload(conn, p1bis, hades.Field("Qualities")))
+		wtest.Must(t, c.Preload(conn, p1bis, hades.Assoc("Qualities")))
 		assert.EqualValues(t, 3, len(p1bis.Qualities), "preload replaces, doesn't append")
 
-		pp.Fields[0] = hades.PreloadField{
-			Name:   "Qualities",
-			Search: hades.Search().OrderBy("id asc"),
-		}
-		wtest.Must(t, c.Preload(conn, pp))
+		wtest.Must(t, c.Preload(conn, p1bis,
+			hades.AssocWithSearch("Qualities", hades.Search().OrderBy("id ASC"))),
+		)
 		assert.EqualValues(t, "Inspiration", p1bis.Qualities[0].Label, "orders by (asc)")
 
-		pp.Fields[0] = hades.PreloadField{
-			Name:   "Qualities",
-			Search: hades.Search().OrderBy("id desc"),
-		}
-		wtest.Must(t, c.Preload(conn, pp))
+		wtest.Must(t, c.Preload(conn, p1bis,
+			hades.AssocWithSearch("Qualities", hades.Search().OrderBy("id DESC"))),
+		)
 		assert.EqualValues(t, "Inspiration again", p1bis.Qualities[0].Label, "orders by (desc)")
 
 		// no fields
-		assert.Error(t, c.Preload(conn, &hades.PreloadParams{Record: p1bis}))
+		assert.Error(t, c.Preload(conn, p1bis))
 
 		// not a model
-		assert.Error(t, c.Preload(conn, &hades.PreloadParams{Record: 42, Fields: pp.Fields}))
+		assert.Error(t, c.Preload(conn, 42, hades.Assoc("Qualities")))
 
 		// non-existent relation
-		assert.Error(t, c.Preload(conn, &hades.PreloadParams{Record: p1bis, Fields: []hades.PreloadField{{Name: "Woops"}}}))
+		assert.Error(t, c.Preload(conn, 42, hades.Assoc("Woops")))
 	})
 }
 
@@ -149,10 +144,7 @@ func Test_HasManyThorough(t *testing.T) {
 
 	t.Logf("...snip tons of INSERT...")
 	c.Log = false
-	ordie(c.Save(conn, &hades.SaveParams{
-		Record: car,
-		Assocs: []string{"Traits"},
-	}))
+	ordie(c.Save(conn, car, hades.Assoc("Traits")))
 	c.Log = true
 
 	numTraits := len(car.Traits)
@@ -163,20 +155,13 @@ func Test_HasManyThorough(t *testing.T) {
 
 	car.Traits = nil
 
-	ordie(c.Save(conn, &hades.SaveParams{
-		Record:   car,
-		Assocs:   []string{"Traits"},
-		DontCull: []interface{}{&Trait{}},
-	}))
+	ordie(c.Save(conn, car, hades.Assoc("Traits")))
 
 	traitCount, err = c.Count(conn, &Trait{}, builder.NewCond())
 	ordie(err)
 	assert.EqualValues(t, numTraits, traitCount, "traits should still exist after partial-join save")
 
-	ordie(c.Save(conn, &hades.SaveParams{
-		Record: car,
-		Assocs: []string{"Traits"},
-	}))
+	ordie(c.Save(conn, car, hades.AssocReplace("Traits")))
 
 	traitCount, err = c.Count(conn, &Trait{}, builder.NewCond())
 	ordie(err)

@@ -51,12 +51,12 @@ func Test_HasOne(t *testing.T) {
 			assert.EqualValues(t, expectedCount, count)
 		}
 
-		wtest.Must(t, c.Save(conn, &hades.SaveParams{Record: country, Assocs: []string{"Specialty"}}))
+		wtest.Must(t, c.Save(conn, country, hades.OmitRoot(), hades.Assoc("Specialty", hades.Assoc("Drawback"))))
 		assertCount(&Country{}, 0)
 		assertCount(&Specialty{}, 1)
 		assertCount(&Drawback{}, 1)
 
-		wtest.Must(t, c.Save(conn, &hades.SaveParams{Record: country}))
+		wtest.Must(t, c.Save(conn, country, hades.Assoc("Specialty", hades.Assoc("Drawback"))))
 		assertCount(&Country{}, 1)
 		assertCount(&Specialty{}, 1)
 		assertCount(&Drawback{}, 1)
@@ -70,12 +70,8 @@ func Test_HasOne(t *testing.T) {
 			countries = append(countries, country)
 		}
 
-		wtest.Must(t, c.Preload(conn, &hades.PreloadParams{
-			Record: countries,
-			Fields: []hades.PreloadField{
-				{Name: "Specialty"},
-				{Name: "Specialty.Drawback"},
-			},
-		}))
+		wtest.Must(t, c.Preload(conn, countries,
+			hades.Assoc("Specialty",
+				hades.Assoc("Drawback"))))
 	})
 }

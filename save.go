@@ -1,8 +1,6 @@
 package hades
 
 import (
-	"fmt"
-	"log"
 	"reflect"
 	"strings"
 
@@ -33,7 +31,7 @@ func (c *Context) SaveNoTransaction(conn *sqlite.Conn, rec interface{}, opts ...
 		valtyp = valtyp.Elem()
 	}
 	if valtyp.Kind() != reflect.Ptr {
-		return fmt.Errorf("Save expects a []*Model or a *Model, but it was passed a %v instead", val.Type())
+		return errors.Errorf("Save expects a []*Model or a *Model, but it was passed a %v instead", val.Type())
 	}
 
 	riMap := make(RecordInfoMap)
@@ -44,7 +42,7 @@ func (c *Context) SaveNoTransaction(conn *sqlite.Conn, rec interface{}, opts ...
 	}
 	rootRecordInfo, err := c.WalkType(riMap, rootField, valtyp)
 	if err != nil {
-		return errors.Wrap(err, "walking records to be saved")
+		return errors.WithMessage(err, "walking records to be saved")
 	}
 
 	entities := make(AllEntities)
@@ -63,7 +61,7 @@ func (c *Context) SaveNoTransaction(conn *sqlite.Conn, rec interface{}, opts ...
 				switch vri.Relationship.Kind {
 				case "has_many", "has_one":
 					if len(pri.ModelStruct.PrimaryFields) != 1 {
-						return fmt.Errorf("Since %v %s %v, we expected one primary key in %v, but found %d",
+						return errors.Errorf("Since %v %s %v, we expected one primary key in %v, but found %d",
 							p.Type(),
 							vri.Relationship.Kind,
 							v.Type(),
@@ -73,7 +71,7 @@ func (c *Context) SaveNoTransaction(conn *sqlite.Conn, rec interface{}, opts ...
 					}
 					pkField := p.Elem().FieldByName(pri.ModelStruct.PrimaryFields[0].Name)
 					if len(vri.Relationship.ForeignFieldNames) != 1 {
-						return fmt.Errorf("Since %v %s %v, we expected one foreign field in %v, but found %d",
+						return errors.Errorf("Since %v %s %v, we expected one foreign field in %v, but found %d",
 							p.Type(),
 							vri.Relationship.Kind,
 							v.Type(),
@@ -85,7 +83,7 @@ func (c *Context) SaveNoTransaction(conn *sqlite.Conn, rec interface{}, opts ...
 					fkField.Set(pkField)
 				case "belongs_to":
 					if len(vri.ModelStruct.PrimaryFields) != 1 {
-						return fmt.Errorf("Since %v %s %v, we expected one primary key in %v, but found %d",
+						return errors.Errorf("Since %v %s %v, we expected one primary key in %v, but found %d",
 							p.Type(),
 							vri.Relationship.Kind,
 							v.Type(),
@@ -96,7 +94,7 @@ func (c *Context) SaveNoTransaction(conn *sqlite.Conn, rec interface{}, opts ...
 					pkField := v.Elem().FieldByName(vri.ModelStruct.PrimaryFields[0].Name)
 
 					if len(vri.Relationship.ForeignFieldNames) != 1 {
-						return fmt.Errorf("Since %v %s %v, we expected one foreign field in %v, but found %d",
+						return errors.Errorf("Since %v %s %v, we expected one foreign field in %v, but found %d",
 							p.Type(),
 							vri.Relationship.Kind,
 							v.Type(),
@@ -114,17 +112,17 @@ func (c *Context) SaveNoTransaction(conn *sqlite.Conn, rec interface{}, opts ...
 			numVisited++
 			err := addEntity(v)
 			if err != nil {
-				return errors.Wrap(err, "adding entity")
+				return errors.WithMessage(err, "adding entity")
 			}
 		}
 
 		if v.Kind() != reflect.Ptr {
-			return fmt.Errorf("expected a pointer, but got with %v", v)
+			return errors.Errorf("expected a pointer, but got with %v", v)
 		}
 		vs := v.Elem()
 
 		if vs.Kind() != reflect.Struct {
-			return fmt.Errorf("expected a struct, but got with %v", v)
+			return errors.Errorf("expected a struct, but got with %v", v)
 		}
 
 		for _, childRi := range vri.Children {
@@ -141,7 +139,7 @@ func (c *Context) SaveNoTransaction(conn *sqlite.Conn, rec interface{}, opts ...
 			persistChildren := true
 			err := walk(v, vri, child, childRi, persistChildren)
 			if err != nil {
-				return errors.Wrap(err, "walking child entities to be saved")
+				return errors.WithMessage(err, "walking child entities to be saved")
 			}
 		}
 		return nil
@@ -152,11 +150,14 @@ func (c *Context) SaveNoTransaction(conn *sqlite.Conn, rec interface{}, opts ...
 			for i := 0; i < v.Len(); i++ {
 				err := visit(p, pri, v.Index(i), vri, persist)
 				if err != nil {
-					return errors.Wrap(err, "walking slice of children")
+					return errors.WithMessage(err, "walking slice of children")
 				}
 			}
 
-			if vri.Field.Mode() == AssocModeReplace {
+			if vri.Relationship != nil &&
+				vri.Relationship.Kind == "has_many" &&
+				vri.Field.Mode() == AssocModeReplace {
+
 				var oldValuePKs []string
 				rel := vri.Relationship
 
@@ -165,10 +166,6 @@ func (c *Context) SaveNoTransaction(conn *sqlite.Conn, rec interface{}, opts ...
 					return errors.Errorf("Can't save %v has_many %v: parent has no primary keys", pri.Type, vri.Type)
 				}
 				parentPK := parentPF.Field
-
-				log.Printf("%v has_many %v:", pri.Type, vri.Type)
-				log.Printf("AssociationForeignDBNames: %v", vri.Relationship.AssociationForeignDBNames)
-				log.Printf("           ForeignDBNames: %v", vri.Relationship.ForeignDBNames)
 
 				if len(vri.ModelStruct.PrimaryFields) != 1 {
 					var pfNames []string
@@ -227,7 +224,7 @@ func (c *Context) SaveNoTransaction(conn *sqlite.Conn, rec interface{}, opts ...
 		} else {
 			err := visit(p, pri, v, vri, persist)
 			if err != nil {
-				return errors.Wrap(err, "walking single child")
+				return errors.WithMessage(err, "walking single child")
 			}
 		}
 		return nil
@@ -235,14 +232,14 @@ func (c *Context) SaveNoTransaction(conn *sqlite.Conn, rec interface{}, opts ...
 
 	err = walk(reflect.Zero(reflect.TypeOf(0)), nil, val, rootRecordInfo, !params.omitRoot)
 	if err != nil {
-		return errors.Wrap(err, "walking all records to be persisted")
+		return errors.WithMessage(err, "walking all records to be persisted")
 	}
 
 	for typ, m := range entities {
 		ri := riMap[typ]
 		err := c.saveRows(conn, ri.Field.Mode(), m)
 		if err != nil {
-			return errors.Wrap(err, "saving rows")
+			return errors.WithMessage(err, "saving rows")
 		}
 	}
 
@@ -250,7 +247,7 @@ func (c *Context) SaveNoTransaction(conn *sqlite.Conn, rec interface{}, opts ...
 		if ri.ManyToMany != nil {
 			err := c.saveJoins(conn, ri.Field.Mode(), ri.ManyToMany)
 			if err != nil {
-				return errors.Wrap(err, "saving joins")
+				return errors.WithMessage(err, "saving joins")
 			}
 		}
 	}

@@ -15,12 +15,12 @@
 package sqliteutil2_test
 
 import (
-	"fmt"
 	"reflect"
 	"testing"
 
 	"crawshaw.io/sqlite"
 	"github.com/itchio/hades/sqliteutil2"
+	"github.com/pkg/errors"
 )
 
 func TestExec(t *testing.T) {
@@ -88,7 +88,7 @@ func TestExecErr(t *testing.T) {
 	}
 
 	calls := 0
-	customErr := fmt.Errorf("custom err")
+	customErr := errors.Errorf("custom err")
 	fn := func(stmt *sqlite.Stmt) error {
 		calls++
 		return customErr

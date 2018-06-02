@@ -88,13 +88,7 @@ func Test_BelongsTo(t *testing.T) {
 		}
 		wtest.Must(t, c.Save(conn, joke))
 
-		c.Preload(conn, &hades.PreloadParams{
-			Record: joke,
-			Fields: []hades.PreloadField{
-				{Name: "Human"},
-				{Name: "Human.Fate"},
-			},
-		})
+		c.Preload(conn, joke, hades.Assoc("Human", hades.Assoc("Fate")))
 		assert.NotNil(t, joke.Human)
 		assert.NotNil(t, joke.Human.Fate)
 		assert.EqualValues(t, "Space rodeo", joke.Human.Fate.Desc)

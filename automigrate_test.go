@@ -2,6 +2,7 @@ package hades_test
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -269,6 +270,6 @@ func Test_AutoMigrateSquash(t *testing.T) {
 
 func ordie(err error) {
 	if err != nil {
-		panic(err)
+		panic(fmt.Sprintf("%+v", err))
 	}
 }

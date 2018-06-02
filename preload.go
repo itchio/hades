@@ -14,6 +14,10 @@ func (c *Context) Preload(conn *sqlite.Conn, rec interface{}, opts ...PreloadPar
 		o.ApplyToPreloadParams(params)
 	}
 
+	if len(params.assocs) == 0 {
+		return errors.Errorf("Cannot preload 0 assocs")
+	}
+
 	val := reflect.ValueOf(rec)
 	valtyp := val.Type()
 	if valtyp.Kind() == reflect.Slice {
@@ -23,7 +27,7 @@ func (c *Context) Preload(conn *sqlite.Conn, rec interface{}, opts ...PreloadPar
 		valtyp = valtyp.Elem()
 	}
 	if valtyp.Kind() != reflect.Ptr {
-		return fmt.Errorf("Preload expects a []*Model or *Model, but it was passed a %v instead", val.Type())
+		return errors.Errorf("Preload expects a []*Model or *Model, but it was passed a %v instead", val.Type())
 	}
 
 	riMap := make(RecordInfoMap)
@@ -34,7 +38,7 @@ func (c *Context) Preload(conn *sqlite.Conn, rec interface{}, opts ...PreloadPar
 	}
 	rootInfo, err := c.WalkType(riMap, rootField, valtyp)
 	if err != nil {
-		return errors.Wrap(err, "waking type tree")
+		return errors.WithMessage(err, "waking type tree")
 	}
 
 	var walk func(p reflect.Value, pri *RecordInfo) error
@@ -44,7 +48,7 @@ func (c *Context) Preload(conn *sqlite.Conn, rec interface{}, opts ...PreloadPar
 			ptyp = ptyp.Elem()
 		}
 		if ptyp.Kind() != reflect.Ptr {
-			return fmt.Errorf("walk expects a []*Model or *Model, but it was passed a %v instead", p.Type())
+			return errors.Errorf("walk expects a []*Model or *Model, but it was passed a %v instead", p.Type())
 		}
 
 		for _, cri := range pri.Children {
@@ -68,7 +72,7 @@ func (c *Context) Preload(conn *sqlite.Conn, rec interface{}, opts ...PreloadPar
 				var err error
 				freshAddr, err = c.fetchPagedByPK(conn, cri.Relationship.ForeignDBNames[0], keys, reflect.SliceOf(cri.Type), cri.Field.Search())
 				if err != nil {
-					return errors.Wrap(err, "fetching has_many records (paginated)")
+					return errors.WithMessage(err, "fetching has_many records (paginated)")
 				}
 
 				pByFK := make(map[interface{}]reflect.Value)
@@ -101,7 +105,7 @@ func (c *Context) Preload(conn *sqlite.Conn, rec interface{}, opts ...PreloadPar
 				var err error
 				freshAddr, err = c.fetchPagedByPK(conn, cri.Relationship.ForeignDBNames[0], keys, reflect.SliceOf(cri.Type), cri.Field.Search())
 				if err != nil {
-					return errors.Wrap(err, "fetching has_one records (paginated)")
+					return errors.WithMessage(err, "fetching has_one records (paginated)")
 				}
 
 				fresh := freshAddr.Elem()
@@ -129,7 +133,7 @@ func (c *Context) Preload(conn *sqlite.Conn, rec interface{}, opts ...PreloadPar
 				var err error
 				freshAddr, err = c.fetchPagedByPK(conn, cri.Relationship.AssociationForeignDBNames[0], keys, reflect.SliceOf(cri.Type), cri.Field.Search())
 				if err != nil {
-					return errors.Wrap(err, "fetching belongs_to records (paginated)")
+					return errors.WithMessage(err, "fetching belongs_to records (paginated)")
 				}
 
 				fresh := freshAddr.Elem()
@@ -148,7 +152,7 @@ func (c *Context) Preload(conn *sqlite.Conn, rec interface{}, opts ...PreloadPar
 					}
 				}
 			default:
-				return fmt.Errorf("Preload doesn't know how to handle %s relationships", cri.Relationship.Kind)
+				return errors.Errorf("Preload doesn't know how to handle %s relationships", cri.Relationship.Kind)
 			}
 
 			fresh := freshAddr.Elem()

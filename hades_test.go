@@ -32,8 +32,7 @@ func withContext(t *testing.T, models []interface{}, f WithContextFunc) {
 	wtest.Must(t, err)
 	c.Log = true
 
-	// wtest.Must(t, c.AutoMigrate(conn))
-	c.AutoMigrate(conn)
+	wtest.Must(t, c.AutoMigrate(conn))
 
 	f(conn, c)
 }

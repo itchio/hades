@@ -20,6 +20,7 @@ import (
 	"strings"
 
 	"crawshaw.io/sqlite"
+	"github.com/pkg/errors"
 )
 
 // Save creates a named SQLite transaction using SAVEPOINT.
@@ -68,7 +69,7 @@ func Save(conn *sqlite.Conn) (releaseFn func(*error)) {
 
 func savepoint(conn *sqlite.Conn, name string) (releaseFn func(*error), err error) {
 	if strings.Contains(name, `"`) {
-		return nil, fmt.Errorf("sqliteutil2.Savepoint: invalid name: %q", name)
+		return nil, errors.Errorf("sqliteutil2.Savepoint: invalid name: %q", name)
 	}
 	if err := Exec(conn, fmt.Sprintf("SAVEPOINT %q;", name), nil); err != nil {
 		return nil, err

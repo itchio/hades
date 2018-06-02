@@ -20,7 +20,7 @@ func (c *Context) saveJoins(conn *sqlite.Conn, mode AssocMode, mtm *ManyToMany) 
 
 		err := c.Select(conn, cacheAddr.Interface(), builder.Eq{mtm.SourceDBName: sourceKey}, nil)
 		if err != nil {
-			return errors.Wrap(err, "fetching cached records to compare later")
+			return errors.WithMessage(err, "fetching cached records to compare later")
 		}
 
 		cache := cacheAddr.Elem()
@@ -52,7 +52,7 @@ func (c *Context) saveJoins(conn *sqlite.Conn, mode AssocMode, mtm *ManyToMany) 
 
 					cf, err := DiffRecord(ifrec, icrec, mtm.Scope)
 					if err != nil {
-						return errors.Wrap(err, "diffing database records")
+						return errors.WithMessage(err, "diffing database records")
 					}
 
 					if cf != nil {
@@ -73,7 +73,7 @@ func (c *Context) saveJoins(conn *sqlite.Conn, mode AssocMode, mtm *ManyToMany) 
 		if mode == AssocModeReplace && len(deletes) > 0 {
 			err := c.deletePagedByPK(conn, mtm.JoinTable, mtm.DestinDBName, deletes, builder.Eq{mtm.SourceDBName: sourceKey})
 			if err != nil {
-				return errors.Wrap(err, "deleting extraneous relations")
+				return errors.WithMessage(err, "deleting extraneous relations")
 			}
 		}
 
@@ -83,7 +83,7 @@ func (c *Context) saveJoins(conn *sqlite.Conn, mode AssocMode, mtm *ManyToMany) 
 			if rec.IsValid() {
 				err := c.Insert(conn, mtm.Scope, rec)
 				if err != nil {
-					return errors.Wrap(err, "creating new relation records")
+					return errors.WithMessage(err, "creating new relation records")
 				}
 			} else {
 				// if not passed an explicit record, make it ourselves
@@ -105,7 +105,7 @@ func (c *Context) saveJoins(conn *sqlite.Conn, mode AssocMode, mtm *ManyToMany) 
 			query := builder.Update(cf.ToEq()).Into(mtm.Scope.TableName()).Where(builder.Eq{mtm.SourceDBName: sourceKey, mtm.DestinDBName: destinKey})
 			err := c.Exec(conn, query, nil)
 			if err != nil {
-				return errors.Wrap(err, "updating related records")
+				return errors.WithMessage(err, "updating related records")
 			}
 		}
 	}

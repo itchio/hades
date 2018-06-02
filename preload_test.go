@@ -24,20 +24,10 @@ func Test_PreloadEdgeCases(t *testing.T) {
 	withContext(t, models, func(conn *sqlite.Conn, c *hades.Context) {
 		// non-existent Bar
 		f := &Foo{ID: 1, BarID: 999}
-		wtest.Must(t, c.Preload(conn, &hades.PreloadParams{
-			Record: f,
-			Fields: []hades.PreloadField{
-				{Name: "Bar"},
-			},
-		}))
+		wtest.Must(t, c.Preload(conn, f, hades.Assoc("Bar")))
 
 		// empty slice
 		var foos []*Foo
-		wtest.Must(t, c.Preload(conn, &hades.PreloadParams{
-			Record: foos,
-			Fields: []hades.PreloadField{
-				{Name: "Bar"},
-			},
-		}))
+		wtest.Must(t, c.Preload(conn, foos, hades.Assoc("Bar")))
 	})
 }
