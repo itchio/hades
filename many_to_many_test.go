@@ -166,6 +166,9 @@ func Test_ManyToManyRevenge(t *testing.T) {
 				hades.Assoc("Game"),
 			),
 		))
+		numPG, err := c.Count(conn, &ProfileGame{}, builder.NewCond())
+		wtest.Must(t, err)
+		assert.EqualValues(t, 3, numPG)
 
 		var names []struct {
 			Name string
@@ -184,6 +187,17 @@ func Test_ManyToManyRevenge(t *testing.T) {
 			{"Seconds until midnight"},
 			{"Three was company"},
 		}, names)
+
+		// delete one
+		p.ProfileGames = p.ProfileGames[1:]
+		wtest.Must(t, c.Save(conn, p,
+			hades.AssocReplace("ProfileGames",
+				hades.Assoc("Game"),
+			),
+		))
+		numPG, err = c.Count(conn, &ProfileGame{}, builder.NewCond())
+		wtest.Must(t, err)
+		assert.EqualValues(t, 2, numPG)
 	})
 }
 

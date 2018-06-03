@@ -15,9 +15,10 @@
 package sqliteutil2
 
 import (
-	"errors"
 	"strings"
 	"testing"
+
+	"github.com/pkg/errors"
 
 	"crawshaw.io/sqlite"
 )
@@ -143,7 +144,7 @@ func TestDone(t *testing.T) {
 
 	relFn := Save(conn)
 	relFn(&err)
-	if code := sqlite.ErrCode(err); code != sqlite.SQLITE_INTERRUPT {
+	if code := sqlite.ErrCode(errors.Cause(err)); code != sqlite.SQLITE_INTERRUPT {
 		t.Errorf("savepoint release function error code is %v, want SQLITE_INTERRUPT", code)
 	}
 }

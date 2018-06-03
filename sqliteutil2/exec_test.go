@@ -83,7 +83,7 @@ func TestExecErr(t *testing.T) {
 		t.Error(err)
 	}
 	err = sqliteutil2.Exec(conn, "INSERT INTO t (c1, c2) VALUES (?, ?);", nil, 1, 1, 1)
-	if got, want := sqlite.ErrCode(err), sqlite.SQLITE_RANGE; got != want {
+	if got, want := sqlite.ErrCode(errors.Cause(err)), sqlite.SQLITE_RANGE; got != want {
 		t.Errorf("INSERT err code=%s, want %s", got, want)
 	}
 
