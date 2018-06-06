@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/itchio/hades/sqliteutil2"
+
 	"crawshaw.io/sqlite"
 	"github.com/go-xorm/builder"
 	"github.com/itchio/hades"
@@ -271,5 +273,116 @@ func Test_AutoMigrateSquash(t *testing.T) {
 func ordie(err error) {
 	if err != nil {
 		panic(fmt.Sprintf("%+v", err))
+	}
+}
+
+func Test_AutoMigratePreservesData(t *testing.T) {
+	dbpool, err := sqlite.Open("file:memory:?mode=memory", 0, 10)
+	ordie(err)
+	defer dbpool.Close()
+
+	conn := dbpool.Get(context.Background().Done())
+	defer dbpool.Put(conn)
+
+	defer sqliteutil2.Exec(conn, "DROP TABLE androids", nil)
+
+	{
+		type AndroidTraits struct {
+			Funny string
+			Wise  string
+		}
+
+		type Android struct {
+			ID     int64
+			Title  string
+			Traits AndroidTraits `hades:"squash"`
+		}
+
+		models := []interface{}{&Android{}}
+
+		c, err := hades.NewContext(makeConsumer(t), models...)
+		ordie(err)
+		c.Log = true
+
+		{
+			var migrateStats hades.AutoMigrateStats
+			ordie(c.AutoMigrateEx(conn, &migrateStats))
+			assert.EqualValues(t, 1, migrateStats.NumCreated)
+			assert.EqualValues(t, 0, migrateStats.NumMigrated)
+			assert.EqualValues(t, 0, migrateStats.NumCurrent)
+		}
+
+		refAndroid := &Android{
+			ID:    123,
+			Title: "tomo",
+			Traits: AndroidTraits{
+				Funny: "funny",
+				Wise:  "wise",
+			},
+		}
+		ordie(c.Save(conn, refAndroid))
+
+		var a Android
+		ok, err := c.SelectOne(conn, &a, builder.NewCond())
+		ordie(err)
+		assert.True(t, ok)
+		assert.EqualValues(t, refAndroid, &a)
+	}
+
+	{
+		type AndroidTraits struct {
+			Funny string
+			Loyal string
+			Wise  string
+		}
+
+		type Android struct {
+			ID     int64
+			Title  string
+			Traits AndroidTraits `hades:"squash"`
+		}
+
+		models := []interface{}{&Android{}}
+
+		c, err := hades.NewContext(makeConsumer(t), models...)
+		ordie(err)
+		c.Log = true
+
+		{
+			var migrateStats hades.AutoMigrateStats
+			ordie(c.AutoMigrateEx(conn, &migrateStats))
+			assert.EqualValues(t, 0, migrateStats.NumCreated)
+			assert.EqualValues(t, 1, migrateStats.NumMigrated)
+			assert.EqualValues(t, 0, migrateStats.NumCurrent)
+		}
+
+		refAndroid := &Android{
+			ID:    123,
+			Title: "tomo",
+			Traits: AndroidTraits{
+				Funny: "funny",
+				Wise:  "wise",
+			},
+		}
+
+		var a Android
+		ok, err := c.SelectOne(conn, &a, builder.NewCond())
+		ordie(err)
+		assert.True(t, ok)
+		assert.EqualValues(t, refAndroid, &a)
+
+		// migrate once more
+		{
+			var migrateStats hades.AutoMigrateStats
+			ordie(c.AutoMigrateEx(conn, &migrateStats))
+			assert.EqualValues(t, 0, migrateStats.NumCreated)
+			assert.EqualValues(t, 0, migrateStats.NumMigrated)
+			assert.EqualValues(t, 1, migrateStats.NumCurrent)
+		}
+
+		ok, err = c.SelectOne(conn, &a, builder.NewCond())
+		ordie(err)
+		assert.True(t, ok)
+		assert.EqualValues(t, refAndroid, &a)
 	}
 }

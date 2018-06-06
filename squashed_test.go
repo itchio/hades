@@ -166,6 +166,7 @@ func Test_SquashedFull(t *testing.T) {
 		wtest.Must(t, c.Save(conn, fu, hades.Assoc("Games")))
 
 		u := &FakeUser{}
+
 		found, err := c.SelectOne(conn, u, builder.NewCond())
 		wtest.Must(t, err)
 		assert.True(t, found)
