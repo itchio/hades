@@ -12,8 +12,10 @@ import (
 )
 
 func Test_SquashedToEq(t *testing.T) {
+	type BoneName string
+
 	type BoneTraits struct {
-		Name     string
+		Name     BoneName
 		Goodness int64
 	}
 
