@@ -39,3 +39,22 @@ func Test_CompositePrimaryKey(t *testing.T) {
 		assert.EqualValues(t, dataCount, 1)
 	})
 }
+
+func Test_SaveDuplicateCompositePrimaryKeys(t *testing.T) {
+	type Helicopter struct {
+		A int64  `hades:"primary_key"`
+		B string `hades:"primary_key"`
+	}
+
+	models := []interface{}{
+		&Helicopter{},
+	}
+
+	withContext(t, models, func(conn *sqlite.Conn, c *hades.Context) {
+		hh := []*Helicopter{
+			&Helicopter{A: 1, B: "hey"},
+			&Helicopter{A: 1, B: "hey"},
+		}
+		wtest.Must(t, c.Save(conn, hh))
+	})
+}
