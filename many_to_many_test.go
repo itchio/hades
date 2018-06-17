@@ -177,7 +177,7 @@ func Test_ManyToManyRevenge(t *testing.T) {
 			builder.Select("games.title").
 				From("games").
 				LeftJoin("profile_games", builder.Expr("profile_games.game_id = games.id")),
-			hades.Search().OrderBy("profile_games.\"order\" ASC"),
+			hades.Search{}.OrderBy("profile_games.\"order\" ASC"),
 			c.IntoRowsScanner(&names),
 		))
 		assert.EqualValues(t, []struct {

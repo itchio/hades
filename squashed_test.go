@@ -174,7 +174,7 @@ func Test_SquashedFull(t *testing.T) {
 		assert.EqualValues(t, 15, u.ID)
 
 		wtest.Must(t, c.Preload(conn, u,
-			hades.AssocWithSearch("Games", hades.Search().OrderBy("id ASC").Offset(1)),
+			hades.AssocWithSearch("Games", hades.Search{}.OrderBy("id ASC").Offset(1)),
 		))
 		assert.EqualValues(t, 2, len(u.Games))
 		assert.EqualValues(t, FakeGameTraits{Ubiquitous: true}, u.Games[0].Traits)
@@ -185,7 +185,7 @@ func Test_SquashedFull(t *testing.T) {
 		wtest.Must(t, c.Save(conn, fu, hades.Assoc("Games")))
 
 		wtest.Must(t, c.Preload(conn, u,
-			hades.AssocWithSearch("Games", hades.Search().OrderBy("id ASC").Offset(2).Limit(1)),
+			hades.AssocWithSearch("Games", hades.Search{}.OrderBy("id ASC").Offset(2).Limit(1)),
 		))
 		assert.EqualValues(t, 1, len(u.Games))
 		assert.EqualValues(t, 6, u.Games[0].ID)

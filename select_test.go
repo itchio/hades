@@ -65,17 +65,17 @@ func Test_Select(t *testing.T) {
 	assert.True(t, found)
 
 	var honors []*Honor
-	wtest.Must(t, c.Select(conn, &honors, builder.Gte{"id": 2}, nil))
+	wtest.Must(t, c.Select(conn, &honors, builder.Gte{"id": 2}, hades.Search{}))
 	assert.EqualValues(t, 2, len(honors))
 
 	wtest.Must(t, c.ExecRaw(conn, "DROP TABLE honors", nil))
 
 	// ---------
 
-	err = c.Select(conn, []Honor{}, builder.Eq{"id": 3}, nil)
+	err = c.Select(conn, []Honor{}, builder.Eq{"id": 3}, hades.Search{})
 	assert.Error(t, err, "Select must reject non-pointer slice")
 
-	err = c.Select(conn, &Honor{}, builder.Eq{"id": 3}, nil)
+	err = c.Select(conn, &Honor{}, builder.Eq{"id": 3}, hades.Search{})
 	assert.Error(t, err, "Select must reject pointer to non-slice")
 
 	type NotAModel struct {
@@ -83,7 +83,7 @@ func Test_Select(t *testing.T) {
 	}
 
 	var namSlice []*NotAModel
-	err = c.Select(conn, &namSlice, builder.Eq{"id": 3}, nil)
+	err = c.Select(conn, &namSlice, builder.Eq{"id": 3}, hades.Search{})
 	assert.Error(t, err, "Select must reject pointer to slice of non-models")
 
 	// ---------

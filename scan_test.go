@@ -55,7 +55,7 @@ func Test_Scan(t *testing.T) {
 			builder.Select("games.*", "game_embed_data.*").
 				From("games").
 				LeftJoin("game_embed_data", builder.Expr("game_embed_data.game_id = games.id")),
-			hades.Search().OrderBy("games.id ASC"),
+			hades.Search{}.OrderBy("games.id ASC"),
 			c.IntoRowsScanner(&rows),
 		))
 

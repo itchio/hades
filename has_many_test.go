@@ -79,12 +79,12 @@ func Test_HasMany(t *testing.T) {
 		assert.EqualValues(t, 3, len(p1bis.Qualities), "preload replaces, doesn't append")
 
 		wtest.Must(t, c.Preload(conn, p1bis,
-			hades.AssocWithSearch("Qualities", hades.Search().OrderBy("id ASC"))),
+			hades.AssocWithSearch("Qualities", hades.Search{}.OrderBy("id ASC"))),
 		)
 		assert.EqualValues(t, "Inspiration", p1bis.Qualities[0].Label, "orders by (asc)")
 
 		wtest.Must(t, c.Preload(conn, p1bis,
-			hades.AssocWithSearch("Qualities", hades.Search().OrderBy("id DESC"))),
+			hades.AssocWithSearch("Qualities", hades.Search{}.OrderBy("id DESC"))),
 		)
 		assert.EqualValues(t, "Inspiration again", p1bis.Qualities[0].Label, "orders by (desc)")
 
