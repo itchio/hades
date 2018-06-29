@@ -39,10 +39,10 @@ func Test_Select(t *testing.T) {
 		panic(err)
 	}
 
-	conn := dbpool.Get(context.Background().Done())
-	defer dbpool.Put(conn)
+	q := dbpool.Get(context.Background().Done())
+	defer dbpool.Put(q)
 
-	wtest.Must(t, c.ExecRaw(conn, "CREATE TABLE honors (id INTEGER PRIMARY KEY, title TEXT)", nil))
+	wtest.Must(t, c.ExecRaw(q, "CREATE TABLE honors (id INTEGER PRIMARY KEY, title TEXT)", nil))
 
 	baseHonors := []Honor{
 		{ID: 0, Title: "Best Picture"},
@@ -52,30 +52,30 @@ func Test_Select(t *testing.T) {
 	}
 
 	for _, h := range baseHonors {
-		wtest.Must(t, c.Exec(conn, builder.Insert(builder.Eq{"id": h.ID, "title": h.Title}).Into("honors"), nil))
+		wtest.Must(t, c.Exec(q, builder.Insert(builder.Eq{"id": h.ID, "title": h.Title}).Into("honors"), nil))
 	}
 
-	count, err := c.Count(conn, &Honor{}, builder.NewCond())
+	count, err := c.Count(q, &Honor{}, builder.NewCond())
 	wtest.Must(t, err)
 	assert.EqualValues(t, 4, count)
 
 	honor := &Honor{}
-	found, err := c.SelectOne(conn, honor, builder.Eq{"id": 3})
+	found, err := c.SelectOne(q, honor, builder.Eq{"id": 3})
 	wtest.Must(t, err)
 	assert.True(t, found)
 
 	var honors []*Honor
-	wtest.Must(t, c.Select(conn, &honors, builder.Gte{"id": 2}, hades.Search{}))
+	wtest.Must(t, c.Select(q, &honors, builder.Gte{"id": 2}, hades.Search{}))
 	assert.EqualValues(t, 2, len(honors))
 
-	wtest.Must(t, c.ExecRaw(conn, "DROP TABLE honors", nil))
+	wtest.Must(t, c.ExecRaw(q, "DROP TABLE honors", nil))
 
 	// ---------
 
-	err = c.Select(conn, []Honor{}, builder.Eq{"id": 3}, hades.Search{})
+	err = c.Select(q, []Honor{}, builder.Eq{"id": 3}, hades.Search{})
 	assert.Error(t, err, "Select must reject non-pointer slice")
 
-	err = c.Select(conn, &Honor{}, builder.Eq{"id": 3}, hades.Search{})
+	err = c.Select(q, &Honor{}, builder.Eq{"id": 3}, hades.Search{})
 	assert.Error(t, err, "Select must reject pointer to non-slice")
 
 	type NotAModel struct {
@@ -83,24 +83,24 @@ func Test_Select(t *testing.T) {
 	}
 
 	var namSlice []*NotAModel
-	err = c.Select(conn, &namSlice, builder.Eq{"id": 3}, hades.Search{})
+	err = c.Select(q, &namSlice, builder.Eq{"id": 3}, hades.Search{})
 	assert.Error(t, err, "Select must reject pointer to slice of non-models")
 
 	// ---------
 
 	hhh := &Honor{}
-	_, err = c.SelectOne(conn, &hhh, builder.Eq{"id": 3})
+	_, err = c.SelectOne(q, &hhh, builder.Eq{"id": 3})
 	assert.Error(t, err, "SelectOne must pointer to pointer")
 
-	_, err = c.SelectOne(conn, []Honor{}, builder.Eq{"id": 3})
+	_, err = c.SelectOne(q, []Honor{}, builder.Eq{"id": 3})
 	assert.Error(t, err, "SelectOne must reject slice")
 
 	answer := 42
-	_, err = c.SelectOne(conn, &answer, builder.Eq{"id": 3})
+	_, err = c.SelectOne(q, &answer, builder.Eq{"id": 3})
 	assert.Error(t, err, "SelectOne must reject pointer to non-struct")
 
 	nam := &NotAModel{}
-	_, err = c.SelectOne(conn, nam, builder.Eq{"id": 3})
+	_, err = c.SelectOne(q, nam, builder.Eq{"id": 3})
 	assert.Error(t, err, "SelectOne must reject pointer to non-struct")
 }
 
@@ -136,11 +136,11 @@ func Test_SelectSquashed(t *testing.T) {
 		panic(err)
 	}
 
-	conn := dbpool.Get(context.Background().Done())
-	defer dbpool.Put(conn)
+	q := dbpool.Get(context.Background().Done())
+	defer dbpool.Put(q)
 
-	wtest.Must(t, c.ExecRaw(conn, "CREATE TABLE androids (id INTEGER PRIMARY KEY, wise BOOLEAN, funny BOOLEAN)", nil))
-	defer c.ExecRaw(conn, "DROP TABLE androids", nil)
+	wtest.Must(t, c.ExecRaw(q, "CREATE TABLE androids (id INTEGER PRIMARY KEY, wise BOOLEAN, funny BOOLEAN)", nil))
+	defer c.ExecRaw(q, "DROP TABLE androids", nil)
 
 	baseAndroids := []Android{
 		Android{ID: 1, Traits: AndroidTraits{Wise: true}},
@@ -150,15 +150,15 @@ func Test_SelectSquashed(t *testing.T) {
 	}
 
 	for _, a := range baseAndroids {
-		wtest.Must(t, c.Exec(conn, builder.Insert(builder.Eq{"id": a.ID, "wise": a.Traits.Wise, "funny": a.Traits.Funny}).Into("androids"), nil))
+		wtest.Must(t, c.Exec(q, builder.Insert(builder.Eq{"id": a.ID, "wise": a.Traits.Wise, "funny": a.Traits.Funny}).Into("androids"), nil))
 	}
 
-	count, err := c.Count(conn, &Android{}, builder.NewCond())
+	count, err := c.Count(q, &Android{}, builder.NewCond())
 	wtest.Must(t, err)
 	assert.EqualValues(t, 4, count)
 
 	a := &Android{}
-	found, err := c.SelectOne(conn, a, builder.Eq{"id": 1})
+	found, err := c.SelectOne(q, a, builder.Eq{"id": 1})
 	wtest.Must(t, err)
 	assert.True(t, found)
 	assert.EqualValues(t, baseAndroids[0], *a)

@@ -14,12 +14,12 @@ import (
 type AllEntities map[reflect.Type]EntityMap
 type EntityMap []interface{}
 
-func (c *Context) Save(conn *sqlite.Conn, rec interface{}, opts ...SaveParam) (err error) {
-	defer sqliteutil2.Save(conn)(&err)
-	return c.SaveNoTransaction(conn, rec, opts...)
+func (c *Context) Save(q Querier, rec interface{}, opts ...SaveParam) (err error) {
+	defer sqliteutil2.Save(q)(&err)
+	return c.SaveNoTransaction(q, rec, opts...)
 }
 
-func (c *Context) SaveNoTransaction(conn *sqlite.Conn, rec interface{}, opts ...SaveParam) error {
+func (c *Context) SaveNoTransaction(q Querier, rec interface{}, opts ...SaveParam) error {
 	var params saveParams
 	for _, o := range opts {
 		o.ApplyToSaveParams(&params)
@@ -204,7 +204,7 @@ func (c *Context) SaveNoTransaction(conn *sqlite.Conn, rec interface{}, opts ...
 						rel.ForeignDBNames[0]: parentPK,
 					})
 
-				err = c.Exec(conn, q, func(stmt *sqlite.Stmt) error {
+				err = c.Exec(q, q, func(stmt *sqlite.Stmt) error {
 					pk := stmt.ColumnText(0)
 					oldValuePKs = append(oldValuePKs, pk)
 					return nil
@@ -232,7 +232,7 @@ func (c *Context) SaveNoTransaction(conn *sqlite.Conn, rec interface{}, opts ...
 					}
 
 					if len(vpksToDelete) > 0 {
-						err := c.deletePagedByPK(conn, vri.ModelStruct.TableName, valuePF.DBName, vpksToDelete, builder.NewCond())
+						err := c.deletePagedByPK(q, vri.ModelStruct.TableName, valuePF.DBName, vpksToDelete, builder.NewCond())
 						if err != nil {
 							return err
 						}
@@ -255,7 +255,7 @@ func (c *Context) SaveNoTransaction(conn *sqlite.Conn, rec interface{}, opts ...
 
 	for typ, m := range entities {
 		ri := riMap[typ]
-		err := c.saveRows(conn, ri.Field.Mode(), m)
+		err := c.saveRows(q, ri.Field.Mode(), m)
 		if err != nil {
 			return errors.WithMessage(err, "saving rows")
 		}
@@ -263,7 +263,7 @@ func (c *Context) SaveNoTransaction(conn *sqlite.Conn, rec interface{}, opts ...
 
 	for _, ri := range riMap {
 		if ri.ManyToMany != nil {
-			err := c.saveJoins(conn, ri.Field.Mode(), ri.ManyToMany)
+			err := c.saveJoins(q, ri.Field.Mode(), ri.ManyToMany)
 			if err != nil {
 				return errors.WithMessage(err, "saving joins")
 			}

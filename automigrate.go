@@ -1,12 +1,12 @@
 package hades
 
 import (
+	"database/sql"
 	"fmt"
 	"reflect"
 	"strings"
 	"time"
 
-	"crawshaw.io/sqlite"
 	"github.com/itchio/hades/sqliteutil2"
 	"github.com/pkg/errors"
 )
@@ -17,13 +17,13 @@ type AutoMigrateStats struct {
 	NumCurrent  int64
 }
 
-func (c *Context) AutoMigrate(conn *sqlite.Conn) error {
-	return c.AutoMigrateEx(conn, &AutoMigrateStats{})
+func (c *Context) AutoMigrate(q Querier) error {
+	return c.AutoMigrateEx(q, &AutoMigrateStats{})
 }
 
-func (c *Context) AutoMigrateEx(conn *sqlite.Conn, stats *AutoMigrateStats) error {
+func (c *Context) AutoMigrateEx(q Querier, stats *AutoMigrateStats) error {
 	for _, m := range c.ScopeMap.byDBName {
-		err := c.syncTable(conn, stats, m.GetModelStruct())
+		err := c.syncTable(q, stats, m.GetModelStruct())
 		if err != nil {
 			return err
 		}
@@ -31,21 +31,21 @@ func (c *Context) AutoMigrateEx(conn *sqlite.Conn, stats *AutoMigrateStats) erro
 	return nil
 }
 
-func (c *Context) syncTable(conn *sqlite.Conn, stats *AutoMigrateStats, ms *ModelStruct) (err error) {
+func (c *Context) syncTable(q Querier, stats *AutoMigrateStats, ms *ModelStruct) (err error) {
 	tableName := ms.TableName
-	pti, err := c.PragmaTableInfo(conn, tableName)
+	pti, err := c.PragmaTableInfo(q, tableName)
 	if err != nil {
 		return err
 	}
 	if len(pti) == 0 {
 		stats.NumCreated++
-		return c.createTable(conn, ms)
+		return c.createTable(q, ms)
 	}
 
 	// migrate table in transaction
-	defer sqliteutil2.Save(conn)(&err)
+	defer sqliteutil2.Save(q)(&err)
 
-	err = c.ExecRaw(conn, "PRAGMA foreign_keys = 0", nil)
+	err = c.ExecRaw(q, "PRAGMA foreign_keys = 0", nil)
 	if err != nil {
 		return nil
 	}
@@ -91,17 +91,17 @@ func (c *Context) syncTable(conn *sqlite.Conn, stats *AutoMigrateStats, ms *Mode
 
 	stats.NumMigrated++
 	tempName := fmt.Sprintf("__hades_migrate__%s__", tableName)
-	err = c.ExecRaw(conn, fmt.Sprintf("CREATE TABLE %s AS SELECT * FROM %s", tempName, tableName), nil)
+	err = c.ExecRaw(q, fmt.Sprintf("CREATE TABLE %s AS SELECT * FROM %s", tempName, tableName), nil)
 	if err != nil {
 		return nil
 	}
 
-	err = c.dropTable(conn, tableName)
+	err = c.dropTable(q, tableName)
 	if err != nil {
 		return nil
 	}
 
-	err = c.createTable(conn, ms)
+	err = c.createTable(q, ms)
 	if err != nil {
 		return err
 	}
@@ -137,17 +137,17 @@ func (c *Context) syncTable(conn *sqlite.Conn, stats *AutoMigrateStats, ms *Mode
 		tempName,
 	)
 
-	err = c.ExecRaw(conn, query, nil)
+	err = c.ExecRaw(q, query, nil)
 	if err != nil {
 		return nil
 	}
 
-	err = c.dropTable(conn, tempName)
+	err = c.dropTable(q, tempName)
 	if err != nil {
 		return nil
 	}
 
-	err = c.ExecRaw(conn, "PRAGMA foreign_keys = 1", nil)
+	err = c.ExecRaw(q, "PRAGMA foreign_keys = 1", nil)
 	if err != nil {
 		return nil
 	}
@@ -155,7 +155,7 @@ func (c *Context) syncTable(conn *sqlite.Conn, stats *AutoMigrateStats, ms *Mode
 	return nil
 }
 
-func (c *Context) createTable(conn *sqlite.Conn, ms *ModelStruct) error {
+func (c *Context) createTable(q Querier, ms *ModelStruct) error {
 	query := fmt.Sprintf("CREATE TABLE %s", EscapeIdentifier(ms.TableName))
 	var columns []string
 	var pks []string
@@ -224,9 +224,9 @@ func (c *Context) createTable(conn *sqlite.Conn, ms *ModelStruct) error {
 	}
 	query = fmt.Sprintf("%s (%s)", query, strings.Join(columns, ", "))
 
-	return c.ExecRaw(conn, query, nil)
+	return c.ExecRaw(q, query, nil)
 }
 
-func (c *Context) dropTable(conn *sqlite.Conn, tableName string) error {
-	return c.ExecRaw(conn, fmt.Sprintf("DROP TABLE %s", EscapeIdentifier(tableName)), nil)
+func (c *Context) dropTable(q Querier, tableName string) error {
+	return c.ExecRaw(q, fmt.Sprintf("DROP TABLE %s", EscapeIdentifier(tableName)), nil)
 }

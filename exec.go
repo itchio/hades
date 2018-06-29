@@ -11,15 +11,15 @@ import (
 
 type ResultFn func(stmt *sqlite.Stmt) error
 
-func (c *Context) Exec(conn *sqlite.Conn, b *builder.Builder, resultFn ResultFn) error {
+func (c *Context) Exec(q Querier, b *builder.Builder, resultFn ResultFn) error {
 	query, args, err := b.ToSQL()
 	if err != nil {
 		return errors.WithStack(err)
 	}
-	return c.ExecRaw(conn, query, resultFn, args...)
+	return c.ExecRaw(q, query, resultFn, args...)
 }
 
-func (c *Context) ExecWithSearch(conn *sqlite.Conn, b *builder.Builder, search Search, resultFn ResultFn) error {
+func (c *Context) ExecWithSearch(q Querier, b *builder.Builder, search Search, resultFn ResultFn) error {
 	query, args, err := b.ToSQL()
 	if err != nil {
 		return errors.WithStack(err)
@@ -27,10 +27,10 @@ func (c *Context) ExecWithSearch(conn *sqlite.Conn, b *builder.Builder, search S
 
 	query = search.Apply(query)
 
-	return c.ExecRaw(conn, query, resultFn, args...)
+	return c.ExecRaw(q, query, resultFn, args...)
 }
 
-func (c *Context) ExecRaw(conn *sqlite.Conn, query string, resultFn ResultFn, args ...interface{}) error {
+func (c *Context) ExecRaw(q Querier, query string, resultFn ResultFn, args ...interface{}) error {
 	c.QueryCount++
 
 	var startTime time.Time
@@ -38,7 +38,7 @@ func (c *Context) ExecRaw(conn *sqlite.Conn, query string, resultFn ResultFn, ar
 		startTime = time.Now()
 	}
 
-	err := sqliteutil2.Exec(conn, query, resultFn, args...)
+	err := sqliteutil2.Exec(q, query, resultFn, args...)
 
 	if c.Log {
 		c.Consumer.Debugf("[%s] %s %+v", time.Since(startTime), query, args)

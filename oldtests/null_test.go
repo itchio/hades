@@ -42,20 +42,20 @@ func Test_Null(t *testing.T) {
 		panic(err)
 	}
 
-	conn := dbpool.Get(context.Background().Done())
-	defer dbpool.Put(conn)
+	q := dbpool.Get(context.Background().Done())
+	defer dbpool.Put(q)
 
-	ordie(c.AutoMigrate(conn))
+	ordie(c.AutoMigrate(q))
 
 	{
 		d := &Download{
 			ID: 123,
 		}
 
-		ordie(c.Save(conn, d))
+		ordie(c.Save(q, d))
 		{
 			dd := &Download{}
-			found, err := c.SelectOne(conn, dd, builder.Eq{"id": 123})
+			found, err := c.SelectOne(q, dd, builder.Eq{"id": 123})
 			ordie(err)
 			assert.True(t, found)
 
@@ -74,11 +74,11 @@ func Test_Null(t *testing.T) {
 		finishedAt := time.Now()
 		d.FinishedAt = &finishedAt
 
-		ordie(c.Save(conn, d))
+		ordie(c.Save(q, d))
 
 		{
 			dd := &Download{}
-			found, err := c.SelectOne(conn, dd, builder.Eq{"id": 123})
+			found, err := c.SelectOne(q, dd, builder.Eq{"id": 123})
 			ordie(err)
 			assert.True(t, found)
 
@@ -89,11 +89,11 @@ func Test_Null(t *testing.T) {
 		}
 
 		d.ErrorMessage = nil
-		ordie(c.Save(conn, d))
+		ordie(c.Save(q, d))
 
 		{
 			dd := &Download{}
-			found, err := c.SelectOne(conn, dd, builder.Eq{"id": 123})
+			found, err := c.SelectOne(q, dd, builder.Eq{"id": 123})
 			ordie(err)
 			assert.True(t, found)
 

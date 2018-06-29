@@ -9,7 +9,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (c *Context) Select(conn *sqlite.Conn, result interface{}, cond builder.Cond, search Search) error {
+func (c *Context) Select(q Querier, result interface{}, cond builder.Cond, search Search) error {
 	resultVal := reflect.ValueOf(result)
 	originalType := resultVal.Type()
 
@@ -40,7 +40,7 @@ func (c *Context) Select(conn *sqlite.Conn, result interface{}, cond builder.Con
 	}
 	query = search.Apply(query)
 
-	return c.ExecRaw(conn, query, func(stmt *sqlite.Stmt) error {
+	return c.ExecRaw(q, query, func(stmt *sqlite.Stmt) error {
 		el := reflect.New(ms.ModelType)
 		err := c.Scan(stmt, fields, el.Elem())
 		if err != nil {
@@ -53,7 +53,7 @@ func (c *Context) Select(conn *sqlite.Conn, result interface{}, cond builder.Con
 
 //
 
-func (c *Context) SelectOne(conn *sqlite.Conn, result interface{}, cond builder.Cond) (bool, error) {
+func (c *Context) SelectOne(q Querier, result interface{}, cond builder.Cond) (bool, error) {
 	found := false
 	resultVal := reflect.ValueOf(result)
 	originalType := resultVal.Type()
@@ -78,7 +78,7 @@ func (c *Context) SelectOne(conn *sqlite.Conn, result interface{}, cond builder.
 	}
 	query = Search{}.Limit(1).Apply(query)
 
-	err = c.ExecRaw(conn, query, func(stmt *sqlite.Stmt) error {
+	err = c.ExecRaw(q, query, func(stmt *sqlite.Stmt) error {
 		err := c.Scan(stmt, fields, resultVal)
 		if err != nil {
 			return err

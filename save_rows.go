@@ -10,7 +10,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (c *Context) saveRows(conn *sqlite.Conn, mode AssocMode, inputIface interface{}) error {
+func (c *Context) saveRows(q Querier, mode AssocMode, inputIface interface{}) error {
 	// inputIFace is a `[]interface{}`
 	input := reflect.ValueOf(inputIface)
 	if input.Kind() != reflect.Slice {
@@ -107,7 +107,7 @@ func (c *Context) saveRows(conn *sqlite.Conn, mode AssocMode, inputIface interfa
 			}
 		}
 
-		err = c.saveJoins(conn, mode, mtm)
+		err = c.saveJoins(q, mode, mtm)
 		if err != nil {
 			return errors.WithMessage(err, "saving joins")
 		}
@@ -133,7 +133,7 @@ func (c *Context) saveRows(conn *sqlite.Conn, mode AssocMode, inputIface interfa
 		keys = append(keys, getKey(record))
 	}
 
-	cacheAddr, err := c.fetchPagedByPK(conn, primaryField.DBName, keys, fresh.Type(), Search{})
+	cacheAddr, err := c.fetchPagedByPK(q, primaryField.DBName, keys, fresh.Type(), Search{})
 	if err != nil {
 		return errors.WithMessage(err, "getting existing rows")
 	}
@@ -187,7 +187,7 @@ func (c *Context) saveRows(conn *sqlite.Conn, mode AssocMode, inputIface interfa
 
 	if len(inserts) > 0 {
 		for _, rec := range inserts {
-			err := c.Insert(conn, scope, rec)
+			err := c.Insert(q, scope, rec)
 			if err != nil {
 				return errors.WithMessage(err, "inserting new DB records")
 			}
@@ -196,7 +196,7 @@ func (c *Context) saveRows(conn *sqlite.Conn, mode AssocMode, inputIface interfa
 
 	for key, cf := range updates {
 		eq := cf.ToEq()
-		err := c.Exec(conn, builder.Update(eq).Into(scope.TableName()).Where(builder.Eq{primaryField.DBName: key}), nil)
+		err := c.Exec(q, builder.Update(eq).Into(scope.TableName()).Where(builder.Eq{primaryField.DBName: key}), nil)
 		if err != nil {
 			return errors.WithMessage(err, "updating DB records")
 		}

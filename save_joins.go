@@ -8,7 +8,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (c *Context) saveJoins(conn *sqlite.Conn, mode AssocMode, mtm *ManyToMany) error {
+func (c *Context) saveJoins(q Querier, mode AssocMode, mtm *ManyToMany) error {
 	joinType := reflect.PtrTo(mtm.Scope.GetModelStruct().ModelType)
 
 	getDestinKey := func(v reflect.Value) interface{} {
@@ -18,7 +18,7 @@ func (c *Context) saveJoins(conn *sqlite.Conn, mode AssocMode, mtm *ManyToMany) 
 	for sourceKey, joinRecs := range mtm.Values {
 		cacheAddr := reflect.New(reflect.SliceOf(joinType))
 
-		err := c.Select(conn, cacheAddr.Interface(), builder.Eq{mtm.SourceDBName: sourceKey}, Search{})
+		err := c.Select(q, cacheAddr.Interface(), builder.Eq{mtm.SourceDBName: sourceKey}, Search{})
 		if err != nil {
 			return errors.WithMessage(err, "fetching cached records to compare later")
 		}
@@ -71,7 +71,7 @@ func (c *Context) saveJoins(conn *sqlite.Conn, mode AssocMode, mtm *ManyToMany) 
 		}
 
 		if mode == AssocModeReplace && len(deletes) > 0 {
-			err := c.deletePagedByPK(conn, mtm.JoinTable, mtm.DestinDBName, deletes, builder.Eq{mtm.SourceDBName: sourceKey})
+			err := c.deletePagedByPK(q, mtm.JoinTable, mtm.DestinDBName, deletes, builder.Eq{mtm.SourceDBName: sourceKey})
 			if err != nil {
 				return errors.WithMessage(err, "deleting extraneous relations")
 			}
@@ -81,7 +81,7 @@ func (c *Context) saveJoins(conn *sqlite.Conn, mode AssocMode, mtm *ManyToMany) 
 			rec := joinRec.Record
 
 			if rec.IsValid() {
-				err := c.Insert(conn, mtm.Scope, rec)
+				err := c.Insert(q, mtm.Scope, rec)
 				if err != nil {
 					return errors.WithMessage(err, "creating new relation records")
 				}
@@ -94,7 +94,7 @@ func (c *Context) saveJoins(conn *sqlite.Conn, mode AssocMode, mtm *ManyToMany) 
 					mtm.DestinDBName: joinRec.DestinKey,
 				}
 				query := builder.Insert(eq).Into(mtm.JoinTable)
-				err := c.Exec(conn, query, nil)
+				err := c.Exec(q, query, nil)
 				if err != nil {
 					return err
 				}
@@ -103,7 +103,7 @@ func (c *Context) saveJoins(conn *sqlite.Conn, mode AssocMode, mtm *ManyToMany) 
 
 		for destinKey, cf := range updates {
 			query := builder.Update(cf.ToEq()).Into(mtm.Scope.TableName()).Where(builder.Eq{mtm.SourceDBName: sourceKey, mtm.DestinDBName: destinKey})
-			err := c.Exec(conn, query, nil)
+			err := c.Exec(q, query, nil)
 			if err != nil {
 				return errors.WithMessage(err, "updating related records")
 			}

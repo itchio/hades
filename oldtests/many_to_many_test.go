@@ -30,7 +30,7 @@ type LanguageWord struct {
 
 func Test_ManyToMany(t *testing.T) {
 	models := []interface{}{&Language{}, &Word{}, &LanguageWord{}}
-	withContext(t, models, func(conn *sqlite.Conn, c *hades.Context) {
+	withContext(t, models, func(q Querier, c *hades.Context) {
 		fr := &Language{
 			ID: 123,
 			Words: []*Word{
@@ -39,12 +39,12 @@ func Test_ManyToMany(t *testing.T) {
 			},
 		}
 		t.Logf("saving just fr")
-		wtest.Must(t, c.Save(conn, fr, hades.Assoc("Words")))
+		wtest.Must(t, c.Save(q, fr, hades.Assoc("Words")))
 
 		assertCount := func(model interface{}, expectedCount int64) {
 			t.Helper()
 			var count int64
-			count, err := c.Count(conn, model, builder.NewCond())
+			count, err := c.Count(q, model, builder.NewCond())
 			wtest.Must(t, err)
 			assert.EqualValues(t, expectedCount, count)
 		}
@@ -60,7 +60,7 @@ func Test_ManyToMany(t *testing.T) {
 			},
 		}
 		t.Logf("saving fr+en")
-		wtest.Must(t, c.Save(conn, []*Language{fr, en}, hades.Assoc("Words")))
+		wtest.Must(t, c.Save(q, []*Language{fr, en}, hades.Assoc("Words")))
 		assertCount(&Language{}, 2)
 		assertCount(&Word{}, 2)
 		assertCount(&LanguageWord{}, 4)
@@ -70,14 +70,14 @@ func Test_ManyToMany(t *testing.T) {
 			{ID: "Wreck"},
 			{ID: "Nervous"},
 		}
-		wtest.Must(t, c.Save(conn, []*Language{en}, hades.Assoc("Words")))
+		wtest.Must(t, c.Save(q, []*Language{en}, hades.Assoc("Words")))
 
 		assertCount(&Language{}, 2)
 		assertCount(&Word{}, 4)
 		assertCount(&LanguageWord{}, 6)
 
 		t.Logf("replacing all english words")
-		wtest.Must(t, c.Save(conn, []*Language{en}, hades.AssocReplace("Words")))
+		wtest.Must(t, c.Save(q, []*Language{en}, hades.AssocReplace("Words")))
 
 		assertCount(&Language{}, 2)
 		assertCount(&Word{}, 4)
@@ -85,14 +85,14 @@ func Test_ManyToMany(t *testing.T) {
 
 		t.Logf("adding commentary")
 		en.Words[0].Comment = "punk band reference"
-		wtest.Must(t, c.Save(conn, []*Language{en}, hades.Assoc("Words")))
+		wtest.Must(t, c.Save(q, []*Language{en}, hades.Assoc("Words")))
 		assertCount(&Language{}, 2)
 		assertCount(&Word{}, 4)
 		assertCount(&LanguageWord{}, 4)
 
 		{
 			w := &Word{}
-			found, err := c.SelectOne(conn, w, builder.Eq{"id": "Wreck"})
+			found, err := c.SelectOne(q, w, builder.Eq{"id": "Wreck"})
 			wtest.Must(t, err)
 			assert.True(t, found)
 			assert.EqualValues(t, "punk band reference", w.Comment)
@@ -102,7 +102,7 @@ func Test_ManyToMany(t *testing.T) {
 			{ID: fr.ID},
 			{ID: en.ID},
 		}
-		err := c.Preload(conn, langs, hades.Assoc("Words"))
+		err := c.Preload(q, langs, hades.Assoc("Words"))
 		// many_to_many preload is not implemented
 		assert.Error(t, err)
 	})
@@ -131,7 +131,7 @@ type ProfileGame struct {
 func Test_ManyToManyRevenge(t *testing.T) {
 	models := []interface{}{&Profile{}, &ProfileGame{}, &Game{}}
 
-	withContext(t, models, func(conn *sqlite.Conn, c *hades.Context) {
+	withContext(t, models, func(q Querier, c *hades.Context) {
 		makeProfile := func() *Profile {
 			return &Profile{
 				ID: 389,
@@ -161,19 +161,19 @@ func Test_ManyToManyRevenge(t *testing.T) {
 			}
 		}
 		p := makeProfile()
-		wtest.Must(t, c.Save(conn, p,
+		wtest.Must(t, c.Save(q, p,
 			hades.Assoc("ProfileGames",
 				hades.Assoc("Game"),
 			),
 		))
-		numPG, err := c.Count(conn, &ProfileGame{}, builder.NewCond())
+		numPG, err := c.Count(q, &ProfileGame{}, builder.NewCond())
 		wtest.Must(t, err)
 		assert.EqualValues(t, 3, numPG)
 
 		var names []struct {
 			Name string
 		}
-		wtest.Must(t, c.ExecWithSearch(conn,
+		wtest.Must(t, c.ExecWithSearch(q,
 			builder.Select("games.title").
 				From("games").
 				LeftJoin("profile_games", builder.Expr("profile_games.game_id = games.id")),
@@ -190,12 +190,12 @@ func Test_ManyToManyRevenge(t *testing.T) {
 
 		// delete one
 		p.ProfileGames = p.ProfileGames[1:]
-		wtest.Must(t, c.Save(conn, p,
+		wtest.Must(t, c.Save(q, p,
 			hades.AssocReplace("ProfileGames",
 				hades.Assoc("Game"),
 			),
 		))
-		numPG, err = c.Count(conn, &ProfileGame{}, builder.NewCond())
+		numPG, err = c.Count(q, &ProfileGame{}, builder.NewCond())
 		wtest.Must(t, err)
 		assert.EqualValues(t, 2, numPG)
 	})
@@ -222,8 +222,8 @@ func Test_ManyToManyThorough(t *testing.T) {
 	ordie(err)
 	defer dbpool.Close()
 
-	conn := dbpool.Get(context.Background().Done())
-	defer dbpool.Put(conn)
+	q := dbpool.Get(context.Background().Done())
+	defer dbpool.Put(q)
 
 	models := []interface{}{&Piece{}, &Author{}, &PieceAuthor{}}
 
@@ -231,11 +231,11 @@ func Test_ManyToManyThorough(t *testing.T) {
 	ordie(err)
 	c.Log = true
 
-	ordie(c.AutoMigrate(conn))
+	ordie(c.AutoMigrate(q))
 
 	assertCount := func(model interface{}, expected int) {
 		t.Helper()
-		actual, err := c.Count(conn, model, builder.NewCond())
+		actual, err := c.Count(q, model, builder.NewCond())
 		ordie(err)
 		assert.EqualValues(t, expected, actual)
 	}
@@ -253,7 +253,7 @@ func Test_ManyToManyThorough(t *testing.T) {
 
 	{
 		beforeSaveQueryCount := c.QueryCount
-		ordie(c.Save(conn, p, hades.Assoc("Authors")))
+		ordie(c.Save(q, p, hades.Assoc("Authors")))
 
 		pieceSelect := 1
 		pieceInsert := 1
@@ -287,7 +287,7 @@ func Test_ManyToManyThorough(t *testing.T) {
 
 	{
 		beforeSaveQueryCount := c.QueryCount
-		ordie(c.Save(conn, p, hades.AssocReplace("Authors")))
+		ordie(c.Save(q, p, hades.AssocReplace("Authors")))
 
 		pieceSelect := 1
 
@@ -313,7 +313,7 @@ func Test_ManyToManyThorough(t *testing.T) {
 
 	{
 		beforeSaveQueryCount := c.QueryCount
-		ordie(c.Save(conn, p, hades.AssocReplace("Authors")))
+		ordie(c.Save(q, p, hades.AssocReplace("Authors")))
 
 		pieceSelect := 1
 
@@ -344,7 +344,7 @@ func Test_ManyToManyThorough(t *testing.T) {
 
 	{
 		beforeSaveQueryCount := c.QueryCount
-		ordie(c.Save(conn, p, hades.AssocReplace("Authors")))
+		ordie(c.Save(q, p, hades.AssocReplace("Authors")))
 
 		pieceSelect := 1
 
@@ -374,14 +374,14 @@ func Test_ManyToManyThorough(t *testing.T) {
 		})
 	}
 
-	ordie(c.Save(conn, p, hades.AssocReplace("Authors")))
+	ordie(c.Save(q, p, hades.AssocReplace("Authors")))
 
 	assertCount(&Piece{}, 1)
 	assertCount(&Author{}, len(originalAuthors)+1+1200)
 	assertCount(&PieceAuthor{}, len(p.Authors))
 
 	p.Authors = nil
-	ordie(c.Save(conn, p, hades.AssocReplace("Authors")))
+	ordie(c.Save(q, p, hades.AssocReplace("Authors")))
 
 	assertCount(&Piece{}, 1)
 	assertCount(&Author{}, len(originalAuthors)+1+1200)

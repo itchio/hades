@@ -10,7 +10,7 @@
 // ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
 // WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
 // ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
-// OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+// OR IN qECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 package sqliteutil2
 
@@ -31,14 +31,14 @@ import (
 //
 // Example:
 //
-//	func doWork(conn *sqlite.Conn) (err error) {
-//		defer sqliteutil2.Save(conn)(&err)
+//	func doWork(q Querier) (err error) {
+//		defer sqliteutil2.Save(q)(&err)
 //
 //		// ... do work in the transaction
 //	}
 //
 // https://www.sqlite.org/lang_savepoint.html
-func Save(conn *sqlite.Conn) (releaseFn func(*error)) {
+func Save(q Querier) (releaseFn func(*error)) {
 	name := "sqliteutil2.Save" // safe as names can be reused
 	var pc [3]uintptr
 	if n := runtime.Callers(0, pc[:]); n > 0 {
@@ -53,7 +53,7 @@ func Save(conn *sqlite.Conn) (releaseFn func(*error)) {
 		}
 	}
 
-	releaseFn, err := savepoint(conn, name)
+	releaseFn, err := savepoint(q, name)
 	if err != nil {
 		if sqlite.ErrCode(errors.Cause(err)) == sqlite.SQLITE_INTERRUPT {
 			return func(errp *error) {
@@ -67,26 +67,26 @@ func Save(conn *sqlite.Conn) (releaseFn func(*error)) {
 	return releaseFn
 }
 
-func savepoint(conn *sqlite.Conn, name string) (releaseFn func(*error), err error) {
+func savepoint(q Querier, name string) (releaseFn func(*error), err error) {
 	if strings.Contains(name, `"`) {
 		return nil, errors.Errorf("sqliteutil2.Savepoint: invalid name: %q", name)
 	}
-	if err := Exec(conn, fmt.Sprintf("SAVEPOINT %q;", name), nil); err != nil {
+	if err := Exec(q, fmt.Sprintf("SAVEPOINT %q;", name), nil); err != nil {
 		return nil, err
 	}
 	releaseFn = func(errp *error) {
 		if p := recover(); p != nil {
-			Exec(conn, fmt.Sprintf("ROLLBACK TO %q;", name), nil)
+			Exec(q, fmt.Sprintf("ROLLBACK TO %q;", name), nil)
 			panic(p)
 		}
 		if *errp == nil {
-			*errp = Exec(conn, fmt.Sprintf("RELEASE %q;", name), nil)
+			*errp = Exec(q, fmt.Sprintf("RELEASE %q;", name), nil)
 		} else {
-			err := Exec(conn, fmt.Sprintf("ROLLBACK TO %q;", name), nil)
+			err := Exec(q, fmt.Sprintf("ROLLBACK TO %q;", name), nil)
 			if err != nil {
 				panic(err)
 			}
-			err = Exec(conn, fmt.Sprintf("RELEASE %q;", name), nil)
+			err = Exec(q, fmt.Sprintf("RELEASE %q;", name), nil)
 			if err != nil {
 				panic(err)
 			}

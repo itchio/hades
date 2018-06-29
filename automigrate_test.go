@@ -6,21 +6,18 @@ import (
 	"testing"
 	"time"
 
-	"github.com/itchio/hades/sqliteutil2"
-
 	"crawshaw.io/sqlite"
 	"github.com/go-xorm/builder"
 	"github.com/itchio/hades"
+	"github.com/itchio/hades/sqliteutil2"
+	_ "github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/assert"
 )
 
 func Test_AutoMigrate(t *testing.T) {
-	dbpool, err := sqlite.Open("file:memory:?mode=memory", 0, 10)
+	db, err := database.Open("sqlite3", "file:memory:?mode=memory")
 	ordie(err)
-	defer dbpool.Close()
-
-	conn := dbpool.Get(context.Background().Done())
-	defer dbpool.Put(conn)
+	defer db.Close()
 
 	{
 		type User struct {
@@ -35,9 +32,9 @@ func Test_AutoMigrate(t *testing.T) {
 		c.Log = true
 
 		t.Logf("first migration")
-		ordie(c.AutoMigrate(conn))
+		ordie(c.AutoMigrate(q))
 
-		pti, err := c.PragmaTableInfo(conn, "users")
+		pti, err := c.PragmaTableInfo(q, "users")
 		ordie(err)
 		assert.EqualValues(t, "id", pti[0].Name)
 		assert.EqualValues(t, "INTEGER", pti[0].Type)
@@ -49,15 +46,15 @@ func Test_AutoMigrate(t *testing.T) {
 		assert.False(t, pti[1].PrimaryKey)
 		assert.False(t, pti[1].NotNull)
 
-		ordie(c.Save(conn, &User{ID: 123, FirstName: "Joanna"}))
+		ordie(c.Save(q, &User{ID: 123, FirstName: "Joanna"}))
 		u := &User{}
-		foundUser, err := c.SelectOne(conn, u, builder.Eq{"id": 123})
+		foundUser, err := c.SelectOne(q, u, builder.Eq{"id": 123})
 		ordie(err)
 		assert.True(t, foundUser)
 		assert.EqualValues(t, &User{ID: 123, FirstName: "Joanna"}, u)
 
 		t.Logf("first migration (bis)")
-		ordie(c.AutoMigrate(conn))
+		ordie(c.AutoMigrate(q))
 	}
 
 	{
@@ -74,9 +71,9 @@ func Test_AutoMigrate(t *testing.T) {
 		c.Log = true
 
 		t.Logf("second migration")
-		ordie(c.AutoMigrate(conn))
+		ordie(c.AutoMigrate(q))
 
-		pti, err := c.PragmaTableInfo(conn, "users")
+		pti, err := c.PragmaTableInfo(q, "users")
 		ordie(err)
 		assert.EqualValues(t, "id", pti[0].Name)
 		assert.EqualValues(t, "INTEGER", pti[0].Type)
@@ -94,27 +91,24 @@ func Test_AutoMigrate(t *testing.T) {
 		assert.False(t, pti[2].NotNull)
 
 		u := &User{}
-		foundUser, err := c.SelectOne(conn, u, builder.Eq{"id": 83294})
+		foundUser, err := c.SelectOne(q, u, builder.Eq{"id": 83294})
 		ordie(err)
 		assert.False(t, foundUser)
 
-		foundUser, err = c.SelectOne(conn, u, builder.Eq{"id": 123})
+		foundUser, err = c.SelectOne(q, u, builder.Eq{"id": 123})
 		ordie(err)
 		assert.True(t, foundUser)
 		assert.EqualValues(t, &User{ID: 123, FirstName: "Joanna", LastName: ""}, u)
 
 		t.Logf("second migration (bis)")
-		ordie(c.AutoMigrate(conn))
+		ordie(c.AutoMigrate(q))
 	}
 }
 
 func Test_AutoMigrateNoPK(t *testing.T) {
-	dbpool, err := sqlite.Open("file:memory:?mode=memory", 0, 10)
+	db, err := database.Open("sqlite3", "file:memory:?mode=memory")
 	ordie(err)
-	defer dbpool.Close()
-
-	conn := dbpool.Get(context.Background().Done())
-	defer dbpool.Put(conn)
+	defer db.Close()
 
 	type Humanoid struct {
 		Name string
@@ -126,17 +120,14 @@ func Test_AutoMigrateNoPK(t *testing.T) {
 	ordie(err)
 	c.Log = true
 
-	err = c.AutoMigrate(conn)
+	err = c.AutoMigrate(q)
 	assert.Error(t, err)
 }
 
 func Test_AutoMigrateAllValidTypes(t *testing.T) {
-	dbpool, err := sqlite.Open("file:memory:?mode=memory", 0, 10)
+	db, err := database.Open("sqlite3", "file:memory:?mode=memory")
 	ordie(err)
-	defer dbpool.Close()
-
-	conn := dbpool.Get(context.Background().Done())
-	defer dbpool.Put(conn)
+	defer db.Close()
 
 	type Humanoid struct {
 		ID        int64
@@ -156,9 +147,9 @@ func Test_AutoMigrateAllValidTypes(t *testing.T) {
 	ordie(err)
 	c.Log = true
 
-	ordie(c.AutoMigrate(conn))
+	ordie(c.AutoMigrate(q))
 
-	pti, err := c.PragmaTableInfo(conn, "humanoids")
+	pti, err := c.PragmaTableInfo(q, "humanoids")
 	ordie(err)
 
 	assert.EqualValues(t, 5, len(pti))
@@ -196,10 +187,10 @@ func Test_AutoMigrateAllValidTypes(t *testing.T) {
 		FirstName: "Jeremy",
 		HeartRate: 3.14,
 	}
-	ordie(c.Save(conn, h1))
+	ordie(c.Save(q, h1))
 
 	h2 := &Humanoid{}
-	found, err := c.SelectOne(conn, h2, builder.Eq{"id": 12})
+	found, err := c.SelectOne(q, h2, builder.Eq{"id": 12})
 	ordie(err)
 	assert.True(t, found)
 
@@ -211,12 +202,9 @@ func Test_AutoMigrateAllValidTypes(t *testing.T) {
 }
 
 func Test_AutoMigrateSquash(t *testing.T) {
-	dbpool, err := sqlite.Open("file:memory:?mode=memory", 0, 10)
+	db, err := db.Open("sqlite3", "file:memory:?mode=memory", 0, 10)
 	ordie(err)
-	defer dbpool.Close()
-
-	conn := dbpool.Get(context.Background().Done())
-	defer dbpool.Put(conn)
+	defer db.Close()
 
 	type AndroidTraits struct {
 		Funny bool
@@ -236,10 +224,10 @@ func Test_AutoMigrateSquash(t *testing.T) {
 	ordie(err)
 	c.Log = true
 
-	ordie(c.AutoMigrate(conn))
-	defer c.ExecRaw(conn, "DROP TABLE androids", nil)
+	ordie(c.AutoMigrate(q))
+	defer c.ExecRaw(q, "DROP TABLE androids", nil)
 
-	pti, err := c.PragmaTableInfo(conn, "androids")
+	pti, err := c.PragmaTableInfo(q, "androids")
 	ordie(err)
 
 	assert.EqualValues(t, 5, len(pti))
@@ -281,10 +269,10 @@ func Test_AutoMigratePreservesData(t *testing.T) {
 	ordie(err)
 	defer dbpool.Close()
 
-	conn := dbpool.Get(context.Background().Done())
-	defer dbpool.Put(conn)
+	q := dbpool.Get(context.Background().Done())
+	defer dbpool.Put(q)
 
-	defer sqliteutil2.Exec(conn, "DROP TABLE androids", nil)
+	defer sqliteutil2.Exec(q, "DROP TABLE androids", nil)
 
 	{
 		type AndroidTraits struct {
@@ -306,7 +294,7 @@ func Test_AutoMigratePreservesData(t *testing.T) {
 
 		{
 			var migrateStats hades.AutoMigrateStats
-			ordie(c.AutoMigrateEx(conn, &migrateStats))
+			ordie(c.AutoMigrateEx(q, &migrateStats))
 			assert.EqualValues(t, 1, migrateStats.NumCreated)
 			assert.EqualValues(t, 0, migrateStats.NumMigrated)
 			assert.EqualValues(t, 0, migrateStats.NumCurrent)
@@ -320,10 +308,10 @@ func Test_AutoMigratePreservesData(t *testing.T) {
 				Wise:  "wise",
 			},
 		}
-		ordie(c.Save(conn, refAndroid))
+		ordie(c.Save(q, refAndroid))
 
 		var a Android
-		ok, err := c.SelectOne(conn, &a, builder.NewCond())
+		ok, err := c.SelectOne(q, &a, builder.NewCond())
 		ordie(err)
 		assert.True(t, ok)
 		assert.EqualValues(t, refAndroid, &a)
@@ -350,7 +338,7 @@ func Test_AutoMigratePreservesData(t *testing.T) {
 
 		{
 			var migrateStats hades.AutoMigrateStats
-			ordie(c.AutoMigrateEx(conn, &migrateStats))
+			ordie(c.AutoMigrateEx(q, &migrateStats))
 			assert.EqualValues(t, 0, migrateStats.NumCreated)
 			assert.EqualValues(t, 1, migrateStats.NumMigrated)
 			assert.EqualValues(t, 0, migrateStats.NumCurrent)
@@ -366,7 +354,7 @@ func Test_AutoMigratePreservesData(t *testing.T) {
 		}
 
 		var a Android
-		ok, err := c.SelectOne(conn, &a, builder.NewCond())
+		ok, err := c.SelectOne(q, &a, builder.NewCond())
 		ordie(err)
 		assert.True(t, ok)
 		assert.EqualValues(t, refAndroid, &a)
@@ -374,13 +362,13 @@ func Test_AutoMigratePreservesData(t *testing.T) {
 		// migrate once more
 		{
 			var migrateStats hades.AutoMigrateStats
-			ordie(c.AutoMigrateEx(conn, &migrateStats))
+			ordie(c.AutoMigrateEx(q, &migrateStats))
 			assert.EqualValues(t, 0, migrateStats.NumCreated)
 			assert.EqualValues(t, 0, migrateStats.NumMigrated)
 			assert.EqualValues(t, 1, migrateStats.NumCurrent)
 		}
 
-		ok, err = c.SelectOne(conn, &a, builder.NewCond())
+		ok, err = c.SelectOne(q, &a, builder.NewCond())
 		ordie(err)
 		assert.True(t, ok)
 		assert.EqualValues(t, refAndroid, &a)

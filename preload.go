@@ -8,7 +8,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (c *Context) Preload(conn *sqlite.Conn, rec interface{}, opts ...PreloadParam) error {
+func (c *Context) Preload(q Querier, rec interface{}, opts ...PreloadParam) error {
 	params := &preloadParams{}
 	for _, o := range opts {
 		o.ApplyToPreloadParams(params)
@@ -70,7 +70,7 @@ func (c *Context) Preload(conn *sqlite.Conn, rec interface{}, opts ...PreloadPar
 				}
 
 				var err error
-				freshAddr, err = c.fetchPagedByPK(conn, cri.Relationship.ForeignDBNames[0], keys, reflect.SliceOf(cri.Type), cri.Field.Search())
+				freshAddr, err = c.fetchPagedByPK(q, cri.Relationship.ForeignDBNames[0], keys, reflect.SliceOf(cri.Type), cri.Field.Search())
 				if err != nil {
 					return errors.WithMessage(err, "fetching has_many records (paginated)")
 				}
@@ -103,7 +103,7 @@ func (c *Context) Preload(conn *sqlite.Conn, rec interface{}, opts ...PreloadPar
 				}
 
 				var err error
-				freshAddr, err = c.fetchPagedByPK(conn, cri.Relationship.ForeignDBNames[0], keys, reflect.SliceOf(cri.Type), cri.Field.Search())
+				freshAddr, err = c.fetchPagedByPK(q, cri.Relationship.ForeignDBNames[0], keys, reflect.SliceOf(cri.Type), cri.Field.Search())
 				if err != nil {
 					return errors.WithMessage(err, "fetching has_one records (paginated)")
 				}
@@ -131,7 +131,7 @@ func (c *Context) Preload(conn *sqlite.Conn, rec interface{}, opts ...PreloadPar
 				}
 
 				var err error
-				freshAddr, err = c.fetchPagedByPK(conn, cri.Relationship.AssociationForeignDBNames[0], keys, reflect.SliceOf(cri.Type), cri.Field.Search())
+				freshAddr, err = c.fetchPagedByPK(q, cri.Relationship.AssociationForeignDBNames[0], keys, reflect.SliceOf(cri.Type), cri.Field.Search())
 				if err != nil {
 					return errors.WithMessage(err, "fetching belongs_to records (paginated)")
 				}

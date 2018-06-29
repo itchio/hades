@@ -24,7 +24,7 @@ func Where(cond builder.Cond) WhereCond {
 	return whereImpl{cond: cond}
 }
 
-func (c *Context) Update(conn *sqlite.Conn, model interface{}, where WhereCond, updates ...builder.Eq) error {
+func (c *Context) Update(q Querier, model interface{}, where WhereCond, updates ...builder.Eq) error {
 	modelType := reflect.TypeOf(model)
 	scope := c.ScopeMap.ByType(modelType)
 	if scope == nil {
@@ -33,5 +33,5 @@ func (c *Context) Update(conn *sqlite.Conn, model interface{}, where WhereCond, 
 
 	tableName := scope.TableName()
 	b := builder.Update(updates...).Where(where.Cond()).Into(tableName)
-	return c.Exec(conn, b, nil)
+	return c.Exec(q, b, nil)
 }

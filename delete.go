@@ -8,7 +8,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (c *Context) Delete(conn *sqlite.Conn, model interface{}, cond builder.Cond) error {
+func (c *Context) Delete(q Querier, model interface{}, cond builder.Cond) error {
 	modelType := reflect.TypeOf(model)
 
 	scope := c.ScopeMap.ByType(modelType)
@@ -21,5 +21,5 @@ func (c *Context) Delete(conn *sqlite.Conn, model interface{}, cond builder.Cond
 	}
 
 	b := builder.Delete(cond).From(scope.TableName())
-	return c.Exec(conn, b, nil)
+	return c.Exec(q, b, nil)
 }

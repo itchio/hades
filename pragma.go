@@ -14,11 +14,11 @@ type PragmaTableInfoRow struct {
 	PrimaryKey bool
 }
 
-func (c *Context) PragmaTableInfo(conn *sqlite.Conn, tableName string) ([]PragmaTableInfoRow, error) {
+func (c *Context) PragmaTableInfo(q Querier, tableName string) ([]PragmaTableInfoRow, error) {
 	var res []PragmaTableInfoRow
 
 	query := fmt.Sprintf("PRAGMA table_info(%s)", EscapeIdentifier(tableName))
-	err := c.ExecRaw(conn, query, func(stmt *sqlite.Stmt) error {
+	err := c.ExecRaw(q, query, func(stmt *sqlite.Stmt) error {
 		// results of pragma
 		// 0 cid, 1 name, 2 type, 3 notnull, 4 dflt_value, 5 pk
 		res = append(res, PragmaTableInfoRow{
