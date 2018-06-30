@@ -38,6 +38,7 @@ func Test_Select(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
+	defer dbpool.Close()
 
 	conn := dbpool.Get(context.Background().Done())
 	defer dbpool.Put(conn)
@@ -135,6 +136,7 @@ func Test_SelectSquashed(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
+	defer dbpool.Close()
 
 	conn := dbpool.Get(context.Background().Done())
 	defer dbpool.Put(conn)

@@ -41,6 +41,7 @@ func Test_Null(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
+	defer dbpool.Close()
 
 	conn := dbpool.Get(context.Background().Done())
 	defer dbpool.Put(conn)

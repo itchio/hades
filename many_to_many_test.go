@@ -251,25 +251,7 @@ func Test_ManyToManyThorough(t *testing.T) {
 	}
 	originalAuthors := p.Authors
 
-	{
-		beforeSaveQueryCount := c.QueryCount
-		ordie(c.Save(conn, p, hades.Assoc("Authors")))
-
-		pieceSelect := 1
-		pieceInsert := 1
-
-		authorSelect := 1
-		authorInsert := len(p.Authors)
-
-		pieceAuthorSelect := 1
-		pieceAuthorInsert := len(p.Authors)
-
-		total := pieceSelect + pieceInsert +
-			authorSelect + authorInsert +
-			pieceAuthorSelect + pieceAuthorInsert
-
-		assert.EqualValues(t, total, c.QueryCount-beforeSaveQueryCount)
-	}
+	ordie(c.Save(conn, p, hades.Assoc("Authors")))
 
 	assertCount(&Piece{}, 1)
 	assertCount(&Author{}, len(p.Authors))
@@ -285,23 +267,7 @@ func Test_ManyToManyThorough(t *testing.T) {
 	}
 	p.Authors = fewerAuthors
 
-	{
-		beforeSaveQueryCount := c.QueryCount
-		ordie(c.Save(conn, p, hades.AssocReplace("Authors")))
-
-		pieceSelect := 1
-
-		authorSelect := 1
-
-		pieceAuthorSelect := 1
-		pieceAuthorDelete := 1
-
-		total := pieceSelect +
-			authorSelect +
-			pieceAuthorSelect + pieceAuthorDelete
-
-		assert.EqualValues(t, total, c.QueryCount-beforeSaveQueryCount)
-	}
+	ordie(c.Save(conn, p, hades.AssocReplace("Authors")))
 
 	assertCount(&Piece{}, 1)
 	assertCount(&Author{}, len(originalAuthors))
@@ -311,23 +277,7 @@ func Test_ManyToManyThorough(t *testing.T) {
 
 	p.Authors[2].Name = "Hansel"
 
-	{
-		beforeSaveQueryCount := c.QueryCount
-		ordie(c.Save(conn, p, hades.AssocReplace("Authors")))
-
-		pieceSelect := 1
-
-		authorSelect := 1
-		authorUpdate := 1
-
-		pieceAuthorSelect := 1
-
-		total := pieceSelect +
-			authorSelect + authorUpdate +
-			pieceAuthorSelect
-
-		assert.EqualValues(t, total, c.QueryCount-beforeSaveQueryCount)
-	}
+	ordie(c.Save(conn, p, hades.AssocReplace("Authors")))
 
 	assertCount(&Piece{}, 1)
 	assertCount(&Author{}, len(originalAuthors))
@@ -342,26 +292,7 @@ func Test_ManyToManyThorough(t *testing.T) {
 		Name: "Joseph",
 	})
 
-	{
-		beforeSaveQueryCount := c.QueryCount
-		ordie(c.Save(conn, p, hades.AssocReplace("Authors")))
-
-		pieceSelect := 1
-
-		authorSelect := 1
-		authorInsert := 1
-		authorUpdate := 2
-
-		pieceAuthorSelect := 1
-		pieceAuthorInsert := 1
-		pieceAuthorDelete := 1
-
-		total := pieceSelect +
-			authorSelect + authorInsert + authorUpdate +
-			pieceAuthorSelect + pieceAuthorInsert + pieceAuthorDelete
-
-		assert.EqualValues(t, total, c.QueryCount-beforeSaveQueryCount)
-	}
+	ordie(c.Save(conn, p, hades.AssocReplace("Authors")))
 
 	assertCount(&Piece{}, 1)
 	assertCount(&Author{}, len(originalAuthors)+1)
