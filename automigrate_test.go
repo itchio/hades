@@ -6,9 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/itchio/hades/sqliteutil2"
-
 	"crawshaw.io/sqlite"
+	"crawshaw.io/sqlite/sqliteutil"
 	"github.com/go-xorm/builder"
 	"github.com/itchio/hades"
 	"github.com/stretchr/testify/assert"
@@ -284,7 +283,7 @@ func Test_AutoMigratePreservesData(t *testing.T) {
 	conn := dbpool.Get(context.Background().Done())
 	defer dbpool.Put(conn)
 
-	defer sqliteutil2.Exec(conn, "DROP TABLE androids", nil)
+	defer sqliteutil.Exec(conn, "DROP TABLE androids", nil)
 
 	{
 		type AndroidTraits struct {
