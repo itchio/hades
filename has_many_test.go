@@ -153,7 +153,7 @@ func Test_HasManyThorough(t *testing.T) {
 	ordie(err)
 	assert.EqualValues(t, numTraits, traitCount, "all traits should exist after save")
 
-	car.Traits = nil
+	car.Traits = car.Traits[:2]
 
 	ordie(c.Save(conn, car, hades.Assoc("Traits")))
 
@@ -165,5 +165,5 @@ func Test_HasManyThorough(t *testing.T) {
 
 	traitCount, err = c.Count(conn, &Trait{}, builder.NewCond())
 	ordie(err)
-	assert.EqualValues(t, 0, traitCount, "no traits should exist after last save")
+	assert.EqualValues(t, 2, traitCount, "only the traist we want should exist after last save")
 }
