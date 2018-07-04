@@ -80,45 +80,6 @@ func Test_SquashedInsert(t *testing.T) {
 	})
 }
 
-func Test_SquashedDiff(t *testing.T) {
-	type BoneTraits struct {
-		Name     string
-		Goodness int64
-	}
-
-	type Bone struct {
-		ID     int64
-		Note   string
-		Traits BoneTraits `hades:"squash"`
-	}
-
-	b1 := Bone{
-		ID:   120,
-		Note: "up in your head",
-		Traits: BoneTraits{
-			Name:     "skull",
-			Goodness: 30,
-		},
-	}
-
-	b2 := Bone{
-		ID:   120,
-		Note: "lives up in your head",
-		Traits: BoneTraits{
-			Name:     "skull",
-			Goodness: 48,
-		},
-	}
-
-	scope := &hades.Scope{Value: &b1}
-	cf, err := hades.DiffRecord(b2, b1, scope)
-	wtest.Must(t, err)
-	eq := cf.ToEq()
-	assert.EqualValues(t, 2, len(eq))
-	assert.EqualValues(t, "lives up in your head", eq["note"])
-	assert.EqualValues(t, 48, eq["goodness"])
-}
-
 func Test_SquashedFull(t *testing.T) {
 	type FakeGameTraits struct {
 		Storied    bool
