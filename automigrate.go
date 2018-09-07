@@ -90,7 +90,7 @@ func (c *Context) syncTable(conn *sqlite.Conn, stats *AutoMigrateStats, ms *Mode
 	}
 
 	stats.NumMigrated++
-	tempName := fmt.Sprintf("__hades_migrate__%s__", tableName)
+	tempName := fmt.Sprintf("__hades_migrate__%s__%d__", tableName, time.Now().UnixNano())
 	err = c.ExecRaw(conn, fmt.Sprintf("CREATE TABLE %s AS SELECT * FROM %s", tempName, tableName), nil)
 	if err != nil {
 		return err
