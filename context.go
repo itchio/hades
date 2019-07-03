@@ -1,7 +1,7 @@
 package hades
 
 import (
-	"github.com/itchio/wharf/state"
+	"github.com/itchio/headway/state"
 )
 
 type Context struct {

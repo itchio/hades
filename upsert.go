@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"crawshaw.io/sqlite"
-	"github.com/go-xorm/builder"
+	"xorm.io/builder"
 )
 
 // TODO: cache me

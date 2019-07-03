@@ -8,9 +8,9 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"crawshaw.io/sqlite"
-	"github.com/go-xorm/builder"
+	"xorm.io/builder"
 	"github.com/itchio/hades"
-	"github.com/itchio/wharf/state"
+	"github.com/itchio/headway/state"
 )
 
 func Test_Null(t *testing.T) {

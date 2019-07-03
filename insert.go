@@ -4,7 +4,7 @@ import (
 	"reflect"
 
 	"crawshaw.io/sqlite"
-	"github.com/go-xorm/builder"
+	"xorm.io/builder"
 )
 
 func (scope *Scope) ToEq(rec reflect.Value) builder.Eq {

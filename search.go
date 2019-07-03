@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/go-xorm/builder"
+	"xorm.io/builder"
 )
 
 type join struct {

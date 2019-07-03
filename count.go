@@ -2,7 +2,7 @@ package hades
 
 import (
 	"crawshaw.io/sqlite"
-	"github.com/go-xorm/builder"
+	"xorm.io/builder"
 )
 
 func (c *Context) Count(conn *sqlite.Conn, model interface{}, cond builder.Cond) (int64, error) {

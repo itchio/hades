@@ -4,9 +4,9 @@ import (
 	"testing"
 
 	"crawshaw.io/sqlite"
-	"github.com/go-xorm/builder"
+	"xorm.io/builder"
 	"github.com/itchio/hades"
-	"github.com/itchio/wharf/wtest"
+	"github.com/itchio/hades/mtest"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -37,10 +37,10 @@ func Test_Delete(t *testing.T) {
 		var count int64
 		var err error
 
-		wtest.Must(t, c.Save(conn, stories))
+		mtest.Must(t, c.Save(conn, stories))
 
 		count, err = c.Count(conn, &Story{}, builder.NewCond())
-		wtest.Must(t, err)
+		mtest.Must(t, err)
 		assert.EqualValues(t, 3, count)
 
 		err = c.Delete(conn, &Story{}, builder.NewCond())
@@ -48,15 +48,15 @@ func Test_Delete(t *testing.T) {
 		assert.Contains(t, err.Error(), "refusing to blindly")
 
 		err = c.Delete(conn, &Story{}, builder.Eq{"id": 1})
-		wtest.Must(t, err)
+		mtest.Must(t, err)
 		count, err = c.Count(conn, &Story{}, builder.NewCond())
-		wtest.Must(t, err)
+		mtest.Must(t, err)
 		assert.EqualValues(t, 2, count)
 
 		err = c.Delete(conn, &Story{}, builder.Expr("1"))
 		assert.NoError(t, err, "must delete all with expr")
 		count, err = c.Count(conn, &Story{}, builder.NewCond())
-		wtest.Must(t, err)
+		mtest.Must(t, err)
 		assert.EqualValues(t, 0, count)
 	})
 }

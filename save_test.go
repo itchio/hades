@@ -5,7 +5,7 @@ import (
 
 	"crawshaw.io/sqlite"
 	"github.com/itchio/hades"
-	"github.com/itchio/wharf/wtest"
+	"github.com/itchio/hades/mtest"
 )
 
 func Test_Save(t *testing.T) {
@@ -34,6 +34,6 @@ func Test_Save(t *testing.T) {
 		p := &Profile{
 			ID: 1,
 		}
-		wtest.Must(t, c.Save(conn, p))
+		mtest.Must(t, c.Save(conn, p))
 	})
 }

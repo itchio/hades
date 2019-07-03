@@ -5,10 +5,10 @@ import (
 	"testing"
 
 	"crawshaw.io/sqlite"
-	"github.com/go-xorm/builder"
+	"xorm.io/builder"
 	"github.com/itchio/hades"
-	"github.com/itchio/wharf/state"
-	"github.com/itchio/wharf/wtest"
+	"github.com/itchio/headway/state"
+	"github.com/itchio/hades/mtest"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -43,7 +43,7 @@ func Test_Select(t *testing.T) {
 	conn := dbpool.Get(context.Background().Done())
 	defer dbpool.Put(conn)
 
-	wtest.Must(t, c.ExecRaw(conn, "CREATE TABLE honors (id INTEGER PRIMARY KEY, title TEXT)", nil))
+	mtest.Must(t, c.ExecRaw(conn, "CREATE TABLE honors (id INTEGER PRIMARY KEY, title TEXT)", nil))
 
 	baseHonors := []Honor{
 		{ID: 0, Title: "Best Picture"},
@@ -53,23 +53,23 @@ func Test_Select(t *testing.T) {
 	}
 
 	for _, h := range baseHonors {
-		wtest.Must(t, c.Exec(conn, builder.Insert(builder.Eq{"id": h.ID, "title": h.Title}).Into("honors"), nil))
+		mtest.Must(t, c.Exec(conn, builder.Insert(builder.Eq{"id": h.ID, "title": h.Title}).Into("honors"), nil))
 	}
 
 	count, err := c.Count(conn, &Honor{}, builder.NewCond())
-	wtest.Must(t, err)
+	mtest.Must(t, err)
 	assert.EqualValues(t, 4, count)
 
 	honor := &Honor{}
 	found, err := c.SelectOne(conn, honor, builder.Eq{"id": 3})
-	wtest.Must(t, err)
+	mtest.Must(t, err)
 	assert.True(t, found)
 
 	var honors []*Honor
-	wtest.Must(t, c.Select(conn, &honors, builder.Gte{"id": 2}, hades.Search{}))
+	mtest.Must(t, c.Select(conn, &honors, builder.Gte{"id": 2}, hades.Search{}))
 	assert.EqualValues(t, 2, len(honors))
 
-	wtest.Must(t, c.ExecRaw(conn, "DROP TABLE honors", nil))
+	mtest.Must(t, c.ExecRaw(conn, "DROP TABLE honors", nil))
 
 	// ---------
 
@@ -141,7 +141,7 @@ func Test_SelectSquashed(t *testing.T) {
 	conn := dbpool.Get(context.Background().Done())
 	defer dbpool.Put(conn)
 
-	wtest.Must(t, c.ExecRaw(conn, "CREATE TABLE androids (id INTEGER PRIMARY KEY, wise BOOLEAN, funny BOOLEAN)", nil))
+	mtest.Must(t, c.ExecRaw(conn, "CREATE TABLE androids (id INTEGER PRIMARY KEY, wise BOOLEAN, funny BOOLEAN)", nil))
 	defer c.ExecRaw(conn, "DROP TABLE androids", nil)
 
 	baseAndroids := []Android{
@@ -152,16 +152,16 @@ func Test_SelectSquashed(t *testing.T) {
 	}
 
 	for _, a := range baseAndroids {
-		wtest.Must(t, c.Exec(conn, builder.Insert(builder.Eq{"id": a.ID, "wise": a.Traits.Wise, "funny": a.Traits.Funny}).Into("androids"), nil))
+		mtest.Must(t, c.Exec(conn, builder.Insert(builder.Eq{"id": a.ID, "wise": a.Traits.Wise, "funny": a.Traits.Funny}).Into("androids"), nil))
 	}
 
 	count, err := c.Count(conn, &Android{}, builder.NewCond())
-	wtest.Must(t, err)
+	mtest.Must(t, err)
 	assert.EqualValues(t, 4, count)
 
 	a := &Android{}
 	found, err := c.SelectOne(conn, a, builder.Eq{"id": 1})
-	wtest.Must(t, err)
+	mtest.Must(t, err)
 	assert.True(t, found)
 	assert.EqualValues(t, baseAndroids[0], *a)
 }

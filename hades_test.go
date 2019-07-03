@@ -6,8 +6,8 @@ import (
 
 	"crawshaw.io/sqlite"
 	"github.com/itchio/hades"
-	"github.com/itchio/wharf/state"
-	"github.com/itchio/wharf/wtest"
+	"github.com/itchio/headway/state"
+	"github.com/itchio/hades/mtest"
 )
 
 func makeConsumer(t *testing.T) *state.Consumer {
@@ -22,17 +22,17 @@ type WithContextFunc func(conn *sqlite.Conn, c *hades.Context)
 
 func withContext(t *testing.T, models []interface{}, f WithContextFunc) {
 	dbpool, err := sqlite.Open("file:memory:?mode=memory", 0, 10)
-	wtest.Must(t, err)
+	mtest.Must(t, err)
 	defer dbpool.Close()
 
 	conn := dbpool.Get(context.Background().Done())
 	defer dbpool.Put(conn)
 
 	c, err := hades.NewContext(makeConsumer(t), models...)
-	wtest.Must(t, err)
+	mtest.Must(t, err)
 	c.Log = true
 
-	wtest.Must(t, c.AutoMigrate(conn))
+	mtest.Must(t, c.AutoMigrate(conn))
 
 	defer func() {
 		c.ScopeMap.Each(func(scope *hades.Scope) error {

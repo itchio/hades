@@ -4,9 +4,9 @@ import (
 	"testing"
 
 	"crawshaw.io/sqlite"
-	"github.com/go-xorm/builder"
+	"xorm.io/builder"
 	"github.com/itchio/hades"
-	"github.com/itchio/wharf/wtest"
+	"github.com/itchio/hades/mtest"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -33,13 +33,13 @@ func Test_Update(t *testing.T) {
 		var count int64
 		var err error
 
-		wtest.Must(t, c.Save(conn, mistakes))
+		mtest.Must(t, c.Save(conn, mistakes))
 
 		count, err = c.Count(conn, &Mistake{}, builder.NewCond())
-		wtest.Must(t, err)
+		mtest.Must(t, err)
 		assert.EqualValues(t, 2, count)
 
-		wtest.Must(t, c.Update(conn, &Mistake{},
+		mtest.Must(t, c.Update(conn, &Mistake{},
 			hades.Where(builder.Eq{"id": 1}),
 			builder.Eq{"body": "rewrote almost everything"},
 		))
@@ -47,22 +47,22 @@ func Test_Update(t *testing.T) {
 		var m Mistake
 		var found bool
 		found, err = c.SelectOne(conn, &m, builder.Eq{"id": 1})
-		wtest.Must(t, err)
+		mtest.Must(t, err)
 		assert.True(t, found)
 		assert.EqualValues(t, "rewrote almost everything", m.Body)
 
-		wtest.Must(t, c.Update(conn, &Mistake{},
+		mtest.Must(t, c.Update(conn, &Mistake{},
 			hades.Where(builder.Expr("1")),
 			builder.Eq{"body": "nothing"},
 		))
 
 		found, err = c.SelectOne(conn, &m, builder.Eq{"id": 1})
-		wtest.Must(t, err)
+		mtest.Must(t, err)
 		assert.True(t, found)
 		assert.EqualValues(t, "nothing", m.Body)
 
 		found, err = c.SelectOne(conn, &m, builder.Eq{"id": 2})
-		wtest.Must(t, err)
+		mtest.Must(t, err)
 		assert.True(t, found)
 		assert.EqualValues(t, "nothing", m.Body)
 	})

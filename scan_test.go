@@ -4,9 +4,9 @@ import (
 	"testing"
 
 	"crawshaw.io/sqlite"
-	"github.com/go-xorm/builder"
+	"xorm.io/builder"
 	"github.com/itchio/hades"
-	"github.com/itchio/wharf/wtest"
+	"github.com/itchio/hades/mtest"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -28,7 +28,7 @@ func Test_Scan(t *testing.T) {
 		&GameEmbedData{},
 	}
 	withContext(t, models, func(conn *sqlite.Conn, c *hades.Context) {
-		wtest.Must(t, c.Save(conn, []*Game{
+		mtest.Must(t, c.Save(conn, []*Game{
 			&Game{
 				ID:    24,
 				Title: "Jazz Jackrabbit",
@@ -51,7 +51,7 @@ func Test_Scan(t *testing.T) {
 			Game          `hades:"squash"`
 			GameEmbedData `hades:"squash"`
 		}
-		wtest.Must(t, c.ExecWithSearch(conn,
+		mtest.Must(t, c.ExecWithSearch(conn,
 			builder.Select("games.*", "game_embed_data.*").
 				From("games").
 				LeftJoin("game_embed_data", builder.Expr("game_embed_data.game_id = games.id")),

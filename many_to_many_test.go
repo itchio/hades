@@ -4,12 +4,12 @@ import (
 	"context"
 	"testing"
 
-	"github.com/go-xorm/builder"
+	"xorm.io/builder"
 	"github.com/stretchr/testify/assert"
 
 	"crawshaw.io/sqlite"
 	"github.com/itchio/hades"
-	"github.com/itchio/wharf/wtest"
+	"github.com/itchio/hades/mtest"
 )
 
 type Language struct {
@@ -39,13 +39,13 @@ func Test_ManyToMany(t *testing.T) {
 			},
 		}
 		t.Logf("saving just fr")
-		wtest.Must(t, c.Save(conn, fr, hades.Assoc("Words")))
+		mtest.Must(t, c.Save(conn, fr, hades.Assoc("Words")))
 
 		assertCount := func(model interface{}, expectedCount int64) {
 			t.Helper()
 			var count int64
 			count, err := c.Count(conn, model, builder.NewCond())
-			wtest.Must(t, err)
+			mtest.Must(t, err)
 			assert.EqualValues(t, expectedCount, count)
 		}
 		assertCount(&Language{}, 1)
@@ -60,7 +60,7 @@ func Test_ManyToMany(t *testing.T) {
 			},
 		}
 		t.Logf("saving fr+en")
-		wtest.Must(t, c.Save(conn, []*Language{fr, en}, hades.Assoc("Words")))
+		mtest.Must(t, c.Save(conn, []*Language{fr, en}, hades.Assoc("Words")))
 		assertCount(&Language{}, 2)
 		assertCount(&Word{}, 2)
 		assertCount(&LanguageWord{}, 4)
@@ -70,14 +70,14 @@ func Test_ManyToMany(t *testing.T) {
 			{ID: "Wreck"},
 			{ID: "Nervous"},
 		}
-		wtest.Must(t, c.Save(conn, []*Language{en}, hades.Assoc("Words")))
+		mtest.Must(t, c.Save(conn, []*Language{en}, hades.Assoc("Words")))
 
 		assertCount(&Language{}, 2)
 		assertCount(&Word{}, 4)
 		assertCount(&LanguageWord{}, 6)
 
 		t.Logf("replacing all english words")
-		wtest.Must(t, c.Save(conn, []*Language{en}, hades.AssocReplace("Words")))
+		mtest.Must(t, c.Save(conn, []*Language{en}, hades.AssocReplace("Words")))
 
 		assertCount(&Language{}, 2)
 		assertCount(&Word{}, 4)
@@ -85,7 +85,7 @@ func Test_ManyToMany(t *testing.T) {
 
 		t.Logf("adding commentary")
 		en.Words[0].Comment = "punk band reference"
-		wtest.Must(t, c.Save(conn, []*Language{en}, hades.Assoc("Words")))
+		mtest.Must(t, c.Save(conn, []*Language{en}, hades.Assoc("Words")))
 		assertCount(&Language{}, 2)
 		assertCount(&Word{}, 4)
 		assertCount(&LanguageWord{}, 4)
@@ -93,7 +93,7 @@ func Test_ManyToMany(t *testing.T) {
 		{
 			w := &Word{}
 			found, err := c.SelectOne(conn, w, builder.Eq{"id": "Wreck"})
-			wtest.Must(t, err)
+			mtest.Must(t, err)
 			assert.True(t, found)
 			assert.EqualValues(t, "punk band reference", w.Comment)
 		}
@@ -161,19 +161,19 @@ func Test_ManyToManyRevenge(t *testing.T) {
 			}
 		}
 		p := makeProfile()
-		wtest.Must(t, c.Save(conn, p,
+		mtest.Must(t, c.Save(conn, p,
 			hades.Assoc("ProfileGames",
 				hades.Assoc("Game"),
 			),
 		))
 		numPG, err := c.Count(conn, &ProfileGame{}, builder.NewCond())
-		wtest.Must(t, err)
+		mtest.Must(t, err)
 		assert.EqualValues(t, 3, numPG)
 
 		var names []struct {
 			Name string
 		}
-		wtest.Must(t, c.ExecWithSearch(conn,
+		mtest.Must(t, c.ExecWithSearch(conn,
 			builder.Select("games.title").
 				From("games").
 				LeftJoin("profile_games", builder.Expr("profile_games.game_id = games.id")),
@@ -190,13 +190,13 @@ func Test_ManyToManyRevenge(t *testing.T) {
 
 		// delete one
 		p.ProfileGames = p.ProfileGames[1:]
-		wtest.Must(t, c.Save(conn, p,
+		mtest.Must(t, c.Save(conn, p,
 			hades.AssocReplace("ProfileGames",
 				hades.Assoc("Game"),
 			),
 		))
 		numPG, err = c.Count(conn, &ProfileGame{}, builder.NewCond())
-		wtest.Must(t, err)
+		mtest.Must(t, err)
 		assert.EqualValues(t, 2, numPG)
 	})
 }

@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/go-xorm/builder"
+	"xorm.io/builder"
 	"github.com/stretchr/testify/assert"
 
 	"crawshaw.io/sqlite"
 	"github.com/itchio/hades"
-	"github.com/itchio/wharf/wtest"
+	"github.com/itchio/hades/mtest"
 )
 
 func Test_HasMany(t *testing.T) {
@@ -31,7 +31,7 @@ func Test_HasMany(t *testing.T) {
 			t.Helper()
 			var count int64
 			count, err := c.Count(conn, model, builder.NewCond())
-			wtest.Must(t, err)
+			mtest.Must(t, err)
 			assert.EqualValues(t, expectedCount, count)
 		}
 
@@ -43,18 +43,18 @@ func Test_HasMany(t *testing.T) {
 				{ID: 11, Label: "Ability to not repeat oneself"},
 			},
 		}
-		wtest.Must(t, c.Save(conn, p1, hades.Assoc("Qualities")))
+		mtest.Must(t, c.Save(conn, p1, hades.Assoc("Qualities")))
 		assertCount(&Programmer{}, 1)
 		assertCount(&Quality{}, 3)
 
 		p1.Qualities[2].Label = "Inspiration again"
-		wtest.Must(t, c.Save(conn, p1, hades.Assoc("Qualities")))
+		mtest.Must(t, c.Save(conn, p1, hades.Assoc("Qualities")))
 		assertCount(&Programmer{}, 1)
 		assertCount(&Quality{}, 3)
 		{
 			q := &Quality{}
 			found, err := c.SelectOne(conn, q, builder.Eq{"id": 11})
-			wtest.Must(t, err)
+			mtest.Must(t, err)
 			assert.True(t, found)
 			assert.EqualValues(t, "Inspiration again", q.Label)
 		}
@@ -67,23 +67,23 @@ func Test_HasMany(t *testing.T) {
 			},
 		}
 		programmers := []*Programmer{p1, p2}
-		wtest.Must(t, c.Save(conn, programmers, hades.Assoc("Qualities")))
+		mtest.Must(t, c.Save(conn, programmers, hades.Assoc("Qualities")))
 		assertCount(&Programmer{}, 2)
 		assertCount(&Quality{}, 5)
 
 		p1bis := &Programmer{ID: 3}
-		wtest.Must(t, c.Preload(conn, p1bis, hades.Assoc("Qualities")))
+		mtest.Must(t, c.Preload(conn, p1bis, hades.Assoc("Qualities")))
 		assert.EqualValues(t, 3, len(p1bis.Qualities), "preload has_many")
 
-		wtest.Must(t, c.Preload(conn, p1bis, hades.Assoc("Qualities")))
+		mtest.Must(t, c.Preload(conn, p1bis, hades.Assoc("Qualities")))
 		assert.EqualValues(t, 3, len(p1bis.Qualities), "preload replaces, doesn't append")
 
-		wtest.Must(t, c.Preload(conn, p1bis,
+		mtest.Must(t, c.Preload(conn, p1bis,
 			hades.AssocWithSearch("Qualities", hades.Search{}.OrderBy("id ASC"))),
 		)
 		assert.EqualValues(t, "Inspiration", p1bis.Qualities[0].Label, "orders by (asc)")
 
-		wtest.Must(t, c.Preload(conn, p1bis,
+		mtest.Must(t, c.Preload(conn, p1bis,
 			hades.AssocWithSearch("Qualities", hades.Search{}.OrderBy("id DESC"))),
 		)
 		assert.EqualValues(t, "Inspiration again", p1bis.Qualities[0].Label, "orders by (desc)")

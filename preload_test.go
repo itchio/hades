@@ -5,7 +5,7 @@ import (
 
 	"crawshaw.io/sqlite"
 	"github.com/itchio/hades"
-	"github.com/itchio/wharf/wtest"
+	"github.com/itchio/hades/mtest"
 )
 
 func Test_PreloadEdgeCases(t *testing.T) {
@@ -24,10 +24,10 @@ func Test_PreloadEdgeCases(t *testing.T) {
 	withContext(t, models, func(conn *sqlite.Conn, c *hades.Context) {
 		// non-existent Bar
 		f := &Foo{ID: 1, BarID: 999}
-		wtest.Must(t, c.Preload(conn, f, hades.Assoc("Bar")))
+		mtest.Must(t, c.Preload(conn, f, hades.Assoc("Bar")))
 
 		// empty slice
 		var foos []*Foo
-		wtest.Must(t, c.Preload(conn, foos, hades.Assoc("Bar")))
+		mtest.Must(t, c.Preload(conn, foos, hades.Assoc("Bar")))
 	})
 }

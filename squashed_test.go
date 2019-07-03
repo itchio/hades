@@ -5,9 +5,9 @@ import (
 	"testing"
 
 	"crawshaw.io/sqlite"
-	"github.com/go-xorm/builder"
+	"xorm.io/builder"
 	"github.com/itchio/hades"
-	"github.com/itchio/wharf/wtest"
+	"github.com/itchio/hades/mtest"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -33,7 +33,7 @@ func Test_SquashedToEq(t *testing.T) {
 	}
 
 	c, err := hades.NewContext(nil, &Bone{})
-	wtest.Must(t, err)
+	mtest.Must(t, err)
 
 	boneScope := c.NewScope(b)
 	eq := boneScope.ToEq(reflect.ValueOf(b))
@@ -66,10 +66,10 @@ func Test_SquashedInsert(t *testing.T) {
 		}
 		val := reflect.ValueOf(b)
 		scope := c.ScopeMap.ByType(val.Type())
-		wtest.Must(t, c.Insert(conn, scope, val))
+		mtest.Must(t, c.Insert(conn, scope, val))
 
 		bb := &Bone{}
-		wtest.Must(t, c.ExecRaw(conn, "SELECT * FROM bones", func(stmt *sqlite.Stmt) error {
+		mtest.Must(t, c.ExecRaw(conn, "SELECT * FROM bones", func(stmt *sqlite.Stmt) error {
 			bb.ID = stmt.ColumnInt64(0)
 			bb.Traits.Name = stmt.ColumnText(1)
 			bb.Traits.Goodness = stmt.ColumnInt64(2)
@@ -124,17 +124,17 @@ func Test_SquashedFull(t *testing.T) {
 				},
 			},
 		}
-		wtest.Must(t, c.Save(conn, fu, hades.Assoc("Games")))
+		mtest.Must(t, c.Save(conn, fu, hades.Assoc("Games")))
 
 		u := &FakeUser{}
 
 		found, err := c.SelectOne(conn, u, builder.NewCond())
-		wtest.Must(t, err)
+		mtest.Must(t, err)
 		assert.True(t, found)
 
 		assert.EqualValues(t, 15, u.ID)
 
-		wtest.Must(t, c.Preload(conn, u,
+		mtest.Must(t, c.Preload(conn, u,
 			hades.AssocWithSearch("Games", hades.Search{}.OrderBy("id ASC").Offset(1)),
 		))
 		assert.EqualValues(t, 2, len(u.Games))
@@ -143,9 +143,9 @@ func Test_SquashedFull(t *testing.T) {
 
 		fu.Games[2].Traits.Storied = false
 		fu.Games[2].Traits.Ubiquitous = false
-		wtest.Must(t, c.Save(conn, fu, hades.Assoc("Games")))
+		mtest.Must(t, c.Save(conn, fu, hades.Assoc("Games")))
 
-		wtest.Must(t, c.Preload(conn, u,
+		mtest.Must(t, c.Preload(conn, u,
 			hades.AssocWithSearch("Games", hades.Search{}.OrderBy("id ASC").Offset(2).Limit(1)),
 		))
 		assert.EqualValues(t, 1, len(u.Games))

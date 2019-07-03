@@ -4,7 +4,7 @@ import (
 	"reflect"
 
 	"crawshaw.io/sqlite"
-	"github.com/go-xorm/builder"
+	"xorm.io/builder"
 	"github.com/pkg/errors"
 )
 
@@ -32,6 +32,6 @@ func (c *Context) Update(conn *sqlite.Conn, model interface{}, where WhereCond, 
 	}
 
 	tableName := scope.TableName()
-	b := builder.Update(updates...).Where(where.Cond()).Into(tableName)
+	b := builder.Update(updates...).Where(where.Cond()).From(tableName)
 	return c.Exec(conn, b, nil)
 }

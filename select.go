@@ -5,7 +5,7 @@ import (
 	"reflect"
 
 	"crawshaw.io/sqlite"
-	"github.com/go-xorm/builder"
+	"xorm.io/builder"
 	"github.com/pkg/errors"
 )
 

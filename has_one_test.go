@@ -4,9 +4,9 @@ import (
 	"testing"
 
 	"crawshaw.io/sqlite"
-	"github.com/go-xorm/builder"
+	"xorm.io/builder"
 	"github.com/itchio/hades"
-	"github.com/itchio/wharf/wtest"
+	"github.com/itchio/hades/mtest"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -47,16 +47,16 @@ func Test_HasOne(t *testing.T) {
 			t.Helper()
 			var count int64
 			count, err := c.Count(conn, model, builder.NewCond())
-			wtest.Must(t, err)
+			mtest.Must(t, err)
 			assert.EqualValues(t, expectedCount, count)
 		}
 
-		wtest.Must(t, c.Save(conn, country, hades.OmitRoot(), hades.Assoc("Specialty", hades.Assoc("Drawback"))))
+		mtest.Must(t, c.Save(conn, country, hades.OmitRoot(), hades.Assoc("Specialty", hades.Assoc("Drawback"))))
 		assertCount(&Country{}, 0)
 		assertCount(&Specialty{}, 1)
 		assertCount(&Drawback{}, 1)
 
-		wtest.Must(t, c.Save(conn, country, hades.Assoc("Specialty", hades.Assoc("Drawback"))))
+		mtest.Must(t, c.Save(conn, country, hades.Assoc("Specialty", hades.Assoc("Drawback"))))
 		assertCount(&Country{}, 1)
 		assertCount(&Specialty{}, 1)
 		assertCount(&Drawback{}, 1)
@@ -65,12 +65,12 @@ func Test_HasOne(t *testing.T) {
 		for i := 0; i < 4; i++ {
 			country := &Country{}
 			found, err := c.SelectOne(conn, country, builder.Eq{"id": 324})
-			wtest.Must(t, err)
+			mtest.Must(t, err)
 			assert.True(t, found)
 			countries = append(countries, country)
 		}
 
-		wtest.Must(t, c.Preload(conn, countries,
+		mtest.Must(t, c.Preload(conn, countries,
 			hades.Assoc("Specialty",
 				hades.Assoc("Drawback"))))
 	})
