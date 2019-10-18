@@ -4,8 +4,8 @@ import (
 	"reflect"
 
 	"crawshaw.io/sqlite"
-	"xorm.io/builder"
 	"github.com/pkg/errors"
+	"xorm.io/builder"
 )
 
 type WhereCond interface {
@@ -24,7 +24,7 @@ func Where(cond builder.Cond) WhereCond {
 	return whereImpl{cond: cond}
 }
 
-func (c *Context) Update(conn *sqlite.Conn, model interface{}, where WhereCond, updates ...builder.Eq) error {
+func (c *Context) Update(conn *sqlite.Conn, model interface{}, where WhereCond, updates ...builder.Cond) error {
 	modelType := reflect.TypeOf(model)
 	scope := c.ScopeMap.ByType(modelType)
 	if scope == nil {
