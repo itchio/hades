@@ -7,7 +7,15 @@ import (
 	"xorm.io/builder"
 )
 
+type joinType string
+
+const (
+	joinTypeInner joinType = "inner"
+	joinTypeLeft  joinType = "left"
+)
+
 type join struct {
+	joinType  joinType
 	joinTable string
 	joinCond  string
 }
@@ -40,8 +48,18 @@ func (s Search) Offset(offset int64) Search {
 	return s
 }
 
-func (s Search) Join(joinTable string, joinCond string) Search {
+func (s Search) InnerJoin(joinTable string, joinCond string) Search {
 	s.joins = append(s.joins, join{
+		joinType:  joinTypeInner,
+		joinTable: joinTable,
+		joinCond:  joinCond,
+	})
+	return s
+}
+
+func (s Search) LeftJoin(joinTable string, joinCond string) Search {
+	s.joins = append(s.joins, join{
+		joinType:  joinTypeLeft,
 		joinTable: joinTable,
 		joinCond:  joinCond,
 	})
@@ -78,7 +96,12 @@ func (s Search) Apply(sql string) string {
 
 func (s Search) ApplyJoins(b *builder.Builder) {
 	for _, j := range s.joins {
-		b.InnerJoin(j.joinTable, j.joinCond)
+		switch j.joinType {
+		case joinTypeInner:
+			b.InnerJoin(j.joinTable, j.joinCond)
+		case joinTypeLeft:
+			b.LeftJoin(j.joinTable, j.joinCond)
+		}
 	}
 }
 
