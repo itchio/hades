@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"crawshaw.io/sqlite"
-	"crawshaw.io/sqlite/sqliteutil"
+	"crawshaw.io/sqlite/sqlitex"
 	"github.com/pkg/errors"
 )
 
@@ -14,7 +14,7 @@ type AllEntities map[reflect.Type]EntityMap
 type EntityMap []interface{}
 
 func (c *Context) Save(conn *sqlite.Conn, rec interface{}, opts ...SaveParam) (err error) {
-	defer sqliteutil.Save(conn)(&err)
+	defer sqlitex.Save(conn)(&err)
 
 	var params saveParams
 	for _, o := range opts {

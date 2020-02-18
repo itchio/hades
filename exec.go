@@ -4,9 +4,9 @@ import (
 	"time"
 
 	"crawshaw.io/sqlite"
-	"crawshaw.io/sqlite/sqliteutil"
-	"xorm.io/builder"
+	"crawshaw.io/sqlite/sqlitex"
 	"github.com/pkg/errors"
+	"xorm.io/builder"
 )
 
 type ResultFn func(stmt *sqlite.Stmt) error
@@ -36,7 +36,7 @@ func (c *Context) ExecRaw(conn *sqlite.Conn, query string, resultFn ResultFn, ar
 		startTime = time.Now()
 	}
 
-	err := sqliteutil.Exec(conn, query, resultFn, args...)
+	err := sqlitex.Exec(conn, query, resultFn, args...)
 
 	if c.Log {
 		c.Consumer.Debugf("[%s] %s %+v", time.Since(startTime), query, args)

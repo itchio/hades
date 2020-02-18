@@ -7,10 +7,10 @@ import (
 	"time"
 
 	"crawshaw.io/sqlite"
-	"crawshaw.io/sqlite/sqliteutil"
-	"xorm.io/builder"
+	"crawshaw.io/sqlite/sqlitex"
 	"github.com/itchio/hades"
 	"github.com/stretchr/testify/assert"
+	"xorm.io/builder"
 )
 
 func Test_AutoMigrate(t *testing.T) {
@@ -283,7 +283,7 @@ func Test_AutoMigratePreservesData(t *testing.T) {
 	conn := dbpool.Get(context.Background().Done())
 	defer dbpool.Put(conn)
 
-	defer sqliteutil.Exec(conn, "DROP TABLE androids", nil)
+	defer sqlitex.Exec(conn, "DROP TABLE androids", nil)
 
 	{
 		type AndroidTraits struct {
