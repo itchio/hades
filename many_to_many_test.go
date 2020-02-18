@@ -4,10 +4,11 @@ import (
 	"context"
 	"testing"
 
-	"xorm.io/builder"
 	"github.com/stretchr/testify/assert"
+	"xorm.io/builder"
 
 	"crawshaw.io/sqlite"
+	"crawshaw.io/sqlite/sqlitex"
 	"github.com/itchio/hades"
 	"github.com/itchio/hades/mtest"
 )
@@ -218,11 +219,11 @@ type PieceAuthor struct {
 }
 
 func Test_ManyToManyThorough(t *testing.T) {
-	dbpool, err := sqlite.Open("file:memory:?mode=memory", 0, 10)
+	dbpool, err := sqlitex.Open("file:memory:?mode=memory", 0, 10)
 	ordie(err)
 	defer dbpool.Close()
 
-	conn := dbpool.Get(context.Background().Done())
+	conn := dbpool.Get(context.Background())
 	defer dbpool.Put(conn)
 
 	models := []interface{}{&Piece{}, &Author{}, &PieceAuthor{}}

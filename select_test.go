@@ -5,11 +5,12 @@ import (
 	"testing"
 
 	"crawshaw.io/sqlite"
-	"xorm.io/builder"
+	"crawshaw.io/sqlite/sqlitex"
 	"github.com/itchio/hades"
-	"github.com/itchio/headway/state"
 	"github.com/itchio/hades/mtest"
+	"github.com/itchio/headway/state"
 	"github.com/stretchr/testify/assert"
+	"xorm.io/builder"
 )
 
 func Test_Select(t *testing.T) {
@@ -34,13 +35,13 @@ func Test_Select(t *testing.T) {
 		t.Logf("[SQLITE] %d %s", code, string(msg))
 	}
 
-	dbpool, err := sqlite.Open("file:memory:?mode=memory", 0, 10)
+	dbpool, err := sqlitex.Open("file:memory:?mode=memory", 0, 10)
 	if err != nil {
 		panic(err)
 	}
 	defer dbpool.Close()
 
-	conn := dbpool.Get(context.Background().Done())
+	conn := dbpool.Get(context.Background())
 	defer dbpool.Put(conn)
 
 	mtest.Must(t, c.ExecRaw(conn, "CREATE TABLE honors (id INTEGER PRIMARY KEY, title TEXT)", nil))
@@ -132,13 +133,13 @@ func Test_SelectSquashed(t *testing.T) {
 		t.Logf("[SQLITE] %d %s", code, string(msg))
 	}
 
-	dbpool, err := sqlite.Open("file:memory:?mode=memory", 0, 10)
+	dbpool, err := sqlitex.Open("file:memory:?mode=memory", 0, 10)
 	if err != nil {
 		panic(err)
 	}
 	defer dbpool.Close()
 
-	conn := dbpool.Get(context.Background().Done())
+	conn := dbpool.Get(context.Background())
 	defer dbpool.Put(conn)
 
 	mtest.Must(t, c.ExecRaw(conn, "CREATE TABLE androids (id INTEGER PRIMARY KEY, wise BOOLEAN, funny BOOLEAN)", nil))

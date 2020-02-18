@@ -5,9 +5,10 @@ import (
 	"testing"
 
 	"crawshaw.io/sqlite"
+	"crawshaw.io/sqlite/sqlitex"
 	"github.com/itchio/hades"
-	"github.com/itchio/headway/state"
 	"github.com/itchio/hades/mtest"
+	"github.com/itchio/headway/state"
 )
 
 func makeConsumer(t *testing.T) *state.Consumer {
@@ -21,11 +22,11 @@ func makeConsumer(t *testing.T) *state.Consumer {
 type WithContextFunc func(conn *sqlite.Conn, c *hades.Context)
 
 func withContext(t *testing.T, models []interface{}, f WithContextFunc) {
-	dbpool, err := sqlite.Open("file:memory:?mode=memory", 0, 10)
+	dbpool, err := sqlitex.Open("file:memory:?mode=memory", 0, 10)
 	mtest.Must(t, err)
 	defer dbpool.Close()
 
-	conn := dbpool.Get(context.Background().Done())
+	conn := dbpool.Get(context.Background())
 	defer dbpool.Put(conn)
 
 	c, err := hades.NewContext(makeConsumer(t), models...)

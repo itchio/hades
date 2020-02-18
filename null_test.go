@@ -8,9 +8,10 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"crawshaw.io/sqlite"
-	"xorm.io/builder"
+	"crawshaw.io/sqlite/sqlitex"
 	"github.com/itchio/hades"
 	"github.com/itchio/headway/state"
+	"xorm.io/builder"
 )
 
 func Test_Null(t *testing.T) {
@@ -37,13 +38,13 @@ func Test_Null(t *testing.T) {
 		t.Logf("[SQLITE] %d %s", code, string(msg))
 	}
 
-	dbpool, err := sqlite.Open("file:memory:?mode=memory", 0, 10)
+	dbpool, err := sqlitex.Open("file:memory:?mode=memory", 0, 10)
 	if err != nil {
 		panic(err)
 	}
 	defer dbpool.Close()
 
-	conn := dbpool.Get(context.Background().Done())
+	conn := dbpool.Get(context.Background())
 	defer dbpool.Put(conn)
 
 	ordie(c.AutoMigrate(conn))

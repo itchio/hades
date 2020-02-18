@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"crawshaw.io/sqlite"
 	"crawshaw.io/sqlite/sqlitex"
 	"github.com/itchio/hades"
 	"github.com/stretchr/testify/assert"
@@ -14,11 +13,11 @@ import (
 )
 
 func Test_AutoMigrate(t *testing.T) {
-	dbpool, err := sqlite.Open("file:memory:?mode=memory", 0, 10)
+	dbpool, err := sqlitex.Open("file:memory:?mode=memory", 0, 10)
 	ordie(err)
 	defer dbpool.Close()
 
-	conn := dbpool.Get(context.Background().Done())
+	conn := dbpool.Get(context.Background())
 	defer dbpool.Put(conn)
 
 	{
@@ -108,11 +107,11 @@ func Test_AutoMigrate(t *testing.T) {
 }
 
 func Test_AutoMigrateNoPK(t *testing.T) {
-	dbpool, err := sqlite.Open("file:memory:?mode=memory", 0, 10)
+	dbpool, err := sqlitex.Open("file:memory:?mode=memory", 0, 10)
 	ordie(err)
 	defer dbpool.Close()
 
-	conn := dbpool.Get(context.Background().Done())
+	conn := dbpool.Get(context.Background())
 	defer dbpool.Put(conn)
 
 	type Humanoid struct {
@@ -130,11 +129,11 @@ func Test_AutoMigrateNoPK(t *testing.T) {
 }
 
 func Test_AutoMigrateAllValidTypes(t *testing.T) {
-	dbpool, err := sqlite.Open("file:memory:?mode=memory", 0, 10)
+	dbpool, err := sqlitex.Open("file:memory:?mode=memory", 0, 10)
 	ordie(err)
 	defer dbpool.Close()
 
-	conn := dbpool.Get(context.Background().Done())
+	conn := dbpool.Get(context.Background())
 	defer dbpool.Put(conn)
 
 	type Humanoid struct {
@@ -210,11 +209,11 @@ func Test_AutoMigrateAllValidTypes(t *testing.T) {
 }
 
 func Test_AutoMigrateSquash(t *testing.T) {
-	dbpool, err := sqlite.Open("file:memory:?mode=memory", 0, 10)
+	dbpool, err := sqlitex.Open("file:memory:?mode=memory", 0, 10)
 	ordie(err)
 	defer dbpool.Close()
 
-	conn := dbpool.Get(context.Background().Done())
+	conn := dbpool.Get(context.Background())
 	defer dbpool.Put(conn)
 
 	type AndroidTraits struct {
@@ -276,11 +275,11 @@ func ordie(err error) {
 }
 
 func Test_AutoMigratePreservesData(t *testing.T) {
-	dbpool, err := sqlite.Open("file:memory:?mode=memory", 0, 10)
+	dbpool, err := sqlitex.Open("file:memory:?mode=memory", 0, 10)
 	ordie(err)
 	defer dbpool.Close()
 
-	conn := dbpool.Get(context.Background().Done())
+	conn := dbpool.Get(context.Background())
 	defer dbpool.Put(conn)
 
 	defer sqlitex.Exec(conn, "DROP TABLE androids", nil)
