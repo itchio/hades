@@ -4,10 +4,10 @@ import (
 	"testing"
 
 	"crawshaw.io/sqlite"
-	"xorm.io/builder"
 	"github.com/itchio/hades"
 	"github.com/itchio/hades/mtest"
 	"github.com/stretchr/testify/assert"
+	"xorm.io/builder"
 )
 
 func Test_Update(t *testing.T) {

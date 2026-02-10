@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/jinzhu/inflection"
 	"errors"
+	"github.com/jinzhu/inflection"
 )
 
 type safeModelStructsMap struct {

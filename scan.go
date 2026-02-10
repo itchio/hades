@@ -11,16 +11,15 @@ import (
 // ScanIntoRows is used to scan a single sqlite statement into a struct that
 // might contain multiple models, for example
 //
-//   var c *hades.Context
-//   var rows []struct{
-//     Game Game `hades:"squash"`
-//     CollectionGame `hades:"squash"`
-//   }
-//   // exec a query, and in the ResultFn:
-//   c.Exec(..., ..., func () {
-//     return c.ScanIntoRows(stmt, rows)
-//   })
-//
+//	var c *hades.Context
+//	var rows []struct{
+//	  Game Game `hades:"squash"`
+//	  CollectionGame `hades:"squash"`
+//	}
+//	// exec a query, and in the ResultFn:
+//	c.Exec(..., ..., func () {
+//	  return c.ScanIntoRows(stmt, rows)
+//	})
 func (c *Context) ScanIntoRows(stmt *sqlite.Stmt, slicePtr any) error {
 	return c.IntoRowsScanner(slicePtr)(stmt)
 }
@@ -57,10 +56,9 @@ func (c *Context) IntoRowsScanner(slicePtr any) ResultFn {
 // Scan is used to scan a single sqlite statement into a model struct
 // for example:
 //
-//   var c *hades.Context
-//   var g Game
-//   c.Scan(stmt, c.NewScope(), reflect.ValueOf(&g).Elem())
-//
+//	var c *hades.Context
+//	var g Game
+//	c.Scan(stmt, c.NewScope(), reflect.ValueOf(&g).Elem())
 func (c *Context) Scan(stmt *sqlite.Stmt, structFields []*StructField, result reflect.Value) error {
 	i := 0
 
