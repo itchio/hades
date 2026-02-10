@@ -1,9 +1,9 @@
 package hades
 
 import (
+	"errors"
+	"fmt"
 	"reflect"
-
-	"github.com/pkg/errors"
 )
 
 // Field model field definition
@@ -14,7 +14,7 @@ type Field struct {
 }
 
 // Set set a value to the field
-func (field *Field) Set(value interface{}) (err error) {
+func (field *Field) Set(value any) (err error) {
 	if !field.Field.IsValid() {
 		return errors.New("field value not valid")
 	}
@@ -43,7 +43,7 @@ func (field *Field) Set(value interface{}) (err error) {
 			if reflectValue.Type().ConvertibleTo(fieldValue.Type()) {
 				fieldValue.Set(reflectValue.Convert(fieldValue.Type()))
 			} else {
-				err = errors.Errorf("could not convert argument of field %s from %s to %s", field.Name, reflectValue.Type(), fieldValue.Type())
+				err = fmt.Errorf("could not convert argument of field %s from %s to %s", field.Name, reflectValue.Type(), fieldValue.Type())
 			}
 		}
 	} else {

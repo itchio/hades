@@ -16,7 +16,7 @@ func Test_Delete(t *testing.T) {
 		Body string
 	}
 
-	models := []interface{}{&Story{}}
+	models := []any{&Story{}}
 
 	withContext(t, models, func(conn *sqlite.Conn, c *hades.Context) {
 		stories := []*Story{

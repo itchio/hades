@@ -8,7 +8,6 @@ import (
 
 	"crawshaw.io/sqlite"
 	"crawshaw.io/sqlite/sqlitex"
-	"github.com/pkg/errors"
 )
 
 type AutoMigrateStats struct {
@@ -198,7 +197,7 @@ func (c *Context) createTable(conn *sqlite.Conn, ms *ModelStruct) error {
 			}
 			fallthrough
 		default:
-			return errors.Errorf("Unsupported model field type: %v (in model %v)", sf.Struct.Type, ms.ModelType)
+			return fmt.Errorf("Unsupported model field type: %v (in model %v)", sf.Struct.Type, ms.ModelType)
 		}
 		modifier := ""
 		if sf.IsPrimaryKey {
@@ -220,7 +219,7 @@ func (c *Context) createTable(conn *sqlite.Conn, ms *ModelStruct) error {
 	if len(pks) > 0 {
 		columns = append(columns, fmt.Sprintf("PRIMARY KEY (%s)", strings.Join(pks, ", ")))
 	} else {
-		return errors.Errorf("Model %v has no primary keys", ms.ModelType)
+		return fmt.Errorf("Model %v has no primary keys", ms.ModelType)
 	}
 	query = fmt.Sprintf("%s (%s)", query, strings.Join(columns, ", "))
 

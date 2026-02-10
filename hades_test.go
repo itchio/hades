@@ -21,7 +21,7 @@ func makeConsumer(t *testing.T) *state.Consumer {
 
 type WithContextFunc func(conn *sqlite.Conn, c *hades.Context)
 
-func withContext(t *testing.T, models []interface{}, f WithContextFunc) {
+func withContext(t *testing.T, models []any, f WithContextFunc) {
 	dbpool, err := sqlitex.Open("file:memory:?mode=memory", 0, 10)
 	mtest.Must(t, err)
 	defer dbpool.Close()

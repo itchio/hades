@@ -24,7 +24,7 @@ func Test_Save(t *testing.T) {
 		CollectionGames []*CollectionGame
 	}
 
-	models := []interface{}{
+	models := []any{
 		&Game{},
 		&CollectionGame{},
 		&Profile{},

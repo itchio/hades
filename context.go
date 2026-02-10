@@ -11,7 +11,7 @@ type Context struct {
 	Log      bool
 }
 
-func NewContext(consumer *state.Consumer, models ...interface{}) (*Context, error) {
+func NewContext(consumer *state.Consumer, models ...any) (*Context, error) {
 	if consumer == nil {
 		consumer = &state.Consumer{}
 	}
@@ -30,11 +30,11 @@ func NewContext(consumer *state.Consumer, models ...interface{}) (*Context, erro
 	return c, nil
 }
 
-func (c *Context) TableName(model interface{}) string {
+func (c *Context) TableName(model any) string {
 	return c.NewScope(model).TableName()
 }
 
-func (c *Context) NewScope(value interface{}) *Scope {
+func (c *Context) NewScope(value any) *Scope {
 	return &Scope{
 		Value: value,
 		ctx:   c,

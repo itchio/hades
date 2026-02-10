@@ -1,15 +1,16 @@
 package hades
 
 import (
+	"errors"
+	"fmt"
 	"math"
 	"reflect"
 
 	"crawshaw.io/sqlite"
-	"github.com/pkg/errors"
 )
 
-func (c *Context) saveRows(conn *sqlite.Conn, mode AssocMode, inputIface interface{}) error {
-	// inputIFace is a `[]interface{}`
+func (c *Context) saveRows(conn *sqlite.Conn, mode AssocMode, inputIface any) error {
+	// inputIFace is a `[]any`
 	input := reflect.ValueOf(inputIface)
 	if input.Kind() != reflect.Slice {
 		return errors.New("diff needs a slice")
@@ -36,13 +37,13 @@ func (c *Context) saveRows(conn *sqlite.Conn, mode AssocMode, inputIface interfa
 	// this will happen for associations
 	if len(primaryFields) != 1 {
 		if len(primaryFields) != 2 {
-			return errors.Errorf("Have %d primary keys for %s, don't know what to do", len(primaryFields), modelName)
+			return fmt.Errorf("Have %d primary keys for %s, don't know what to do", len(primaryFields), modelName)
 		}
 
-		recordsGroupedByPrimaryField := make(map[*Field]map[interface{}][]reflect.Value)
+		recordsGroupedByPrimaryField := make(map[*Field]map[any][]reflect.Value)
 
 		for _, primaryField := range primaryFields {
-			recordsByKey := make(map[interface{}][]reflect.Value)
+			recordsByKey := make(map[any][]reflect.Value)
 
 			for i := 0; i < fresh.Len(); i++ {
 				rec := fresh.Index(i)
@@ -54,7 +55,7 @@ func (c *Context) saveRows(conn *sqlite.Conn, mode AssocMode, inputIface interfa
 
 		var bestSourcePrimaryField *Field
 		var bestNumGroups int64 = math.MaxInt64
-		var valueMap map[interface{}][]reflect.Value
+		var valueMap map[any][]reflect.Value
 		for primaryField, recs := range recordsGroupedByPrimaryField {
 			numGroups := len(recs)
 			if int64(numGroups) < bestNumGroups {
@@ -65,7 +66,7 @@ func (c *Context) saveRows(conn *sqlite.Conn, mode AssocMode, inputIface interfa
 		}
 
 		if bestSourcePrimaryField == nil {
-			return errors.Errorf("Have %d primary keys for %s, don't know what to do", len(primaryFields), modelName)
+			return fmt.Errorf("Have %d primary keys for %s, don't know what to do", len(primaryFields), modelName)
 		}
 
 		var bestDestinPrimaryField *Field
@@ -95,7 +96,7 @@ func (c *Context) saveRows(conn *sqlite.Conn, mode AssocMode, inputIface interfa
 			[]JoinTableForeignKey{destinJTFK},
 		)
 		if err != nil {
-			return errors.WithMessage(err, "creating ManyToMany relationship")
+			return fmt.Errorf("creating ManyToMany relationship: %w", err)
 		}
 
 		for sourceKey, recs := range valueMap {
@@ -107,7 +108,7 @@ func (c *Context) saveRows(conn *sqlite.Conn, mode AssocMode, inputIface interfa
 
 		err = c.saveJoins(conn, mode, mtm)
 		if err != nil {
-			return errors.WithMessage(err, "saving joins")
+			return fmt.Errorf("saving joins: %w", err)
 		}
 
 		return nil
@@ -117,7 +118,7 @@ func (c *Context) saveRows(conn *sqlite.Conn, mode AssocMode, inputIface interfa
 		rec := fresh.Index(i)
 		err := c.Upsert(conn, scope, rec)
 		if err != nil {
-			return errors.WithMessage(err, "upserting DB records")
+			return fmt.Errorf("upserting DB records: %w", err)
 		}
 	}
 

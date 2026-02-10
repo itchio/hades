@@ -1,6 +1,6 @@
 package hades
 
-import "github.com/pkg/errors"
+import "errors"
 
 var (
 	ErrUnaddressable = errors.New("using unaddressable value")

@@ -30,7 +30,7 @@ type LanguageWord struct {
 }
 
 func Test_ManyToMany(t *testing.T) {
-	models := []interface{}{&Language{}, &Word{}, &LanguageWord{}}
+	models := []any{&Language{}, &Word{}, &LanguageWord{}}
 	withContext(t, models, func(conn *sqlite.Conn, c *hades.Context) {
 		fr := &Language{
 			ID: 123,
@@ -42,7 +42,7 @@ func Test_ManyToMany(t *testing.T) {
 		t.Logf("saving just fr")
 		mtest.Must(t, c.Save(conn, fr, hades.Assoc("Words")))
 
-		assertCount := func(model interface{}, expectedCount int64) {
+		assertCount := func(model any, expectedCount int64) {
 			t.Helper()
 			var count int64
 			count, err := c.Count(conn, model, builder.NewCond())
@@ -130,7 +130,7 @@ type ProfileGame struct {
 }
 
 func Test_ManyToManyRevenge(t *testing.T) {
-	models := []interface{}{&Profile{}, &ProfileGame{}, &Game{}}
+	models := []any{&Profile{}, &ProfileGame{}, &Game{}}
 
 	withContext(t, models, func(conn *sqlite.Conn, c *hades.Context) {
 		makeProfile := func() *Profile {
@@ -226,7 +226,7 @@ func Test_ManyToManyThorough(t *testing.T) {
 	conn := dbpool.Get(context.Background())
 	defer dbpool.Put(conn)
 
-	models := []interface{}{&Piece{}, &Author{}, &PieceAuthor{}}
+	models := []any{&Piece{}, &Author{}, &PieceAuthor{}}
 
 	c, err := hades.NewContext(makeConsumer(t), models...)
 	ordie(err)
@@ -234,7 +234,7 @@ func Test_ManyToManyThorough(t *testing.T) {
 
 	ordie(c.AutoMigrate(conn))
 
-	assertCount := func(model interface{}, expected int) {
+	assertCount := func(model any, expected int) {
 		t.Helper()
 		actual, err := c.Count(conn, model, builder.NewCond())
 		ordie(err)

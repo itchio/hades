@@ -23,7 +23,7 @@ func Test_Scan(t *testing.T) {
 		EmbedData *GameEmbedData
 	}
 
-	models := []interface{}{
+	models := []any{
 		&Game{},
 		&GameEmbedData{},
 	}

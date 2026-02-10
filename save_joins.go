@@ -5,7 +5,6 @@ import (
 	"reflect"
 
 	"crawshaw.io/sqlite"
-	"github.com/pkg/errors"
 )
 
 func (c *Context) saveJoins(conn *sqlite.Conn, mode AssocMode, mtm *ManyToMany) error {
@@ -58,7 +57,7 @@ func (c *Context) saveJoins(conn *sqlite.Conn, mode AssocMode, mtm *ManyToMany) 
 				continue
 			}
 
-			passedDKs := make(map[interface{}]struct{})
+			passedDKs := make(map[any]struct{})
 			for _, jr := range joinRecs {
 				passedDKs[jr.DestinKey] = struct{}{}
 			}
@@ -68,17 +67,17 @@ func (c *Context) saveJoins(conn *sqlite.Conn, mode AssocMode, mtm *ManyToMany) 
 			dkTyp := reflect.TypeOf(firstDK)
 			dkKind := dkTyp.Kind()
 
-			var removedDKs []interface{}
+			var removedDKs []any
 			{
 				err := c.ExecRaw(conn, selectQuery, func(stmt *sqlite.Stmt) error {
-					var dk interface{}
+					var dk any
 					switch dkKind {
 					case reflect.Int64:
 						dk = stmt.ColumnInt64(0)
 					case reflect.String:
 						dk = stmt.ColumnText(0)
 					default:
-						return errors.Errorf("Unsupported primary key for join table: %v", dkTyp)
+						return fmt.Errorf("Unsupported primary key for join table: %v", dkTyp)
 					}
 
 					if _, ok := passedDKs[dk]; !ok {

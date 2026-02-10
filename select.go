@@ -6,26 +6,25 @@ import (
 
 	"crawshaw.io/sqlite"
 	"xorm.io/builder"
-	"github.com/pkg/errors"
 )
 
-func (c *Context) Select(conn *sqlite.Conn, result interface{}, cond builder.Cond, search Search) error {
+func (c *Context) Select(conn *sqlite.Conn, result any, cond builder.Cond, search Search) error {
 	resultVal := reflect.ValueOf(result)
 	originalType := resultVal.Type()
 
 	if resultVal.Type().Kind() != reflect.Ptr {
-		return errors.Errorf("Select expects results to be a *[]Model, but it got a %v", originalType)
+		return fmt.Errorf("Select expects results to be a *[]Model, but it got a %v", originalType)
 	}
 	resultVal = resultVal.Elem()
 
 	if resultVal.Type().Kind() != reflect.Slice {
-		return errors.Errorf("Select expects results to be a *[]Model, but it got a %v", originalType)
+		return fmt.Errorf("Select expects results to be a *[]Model, but it got a %v", originalType)
 	}
 
 	modelType := resultVal.Type().Elem()
 	scope := c.ScopeMap.ByType(modelType)
 	if scope == nil {
-		return errors.Errorf("%v is not a model known to this hades context", modelType)
+		return fmt.Errorf("%v is not a model known to this hades context", modelType)
 	}
 
 	ms := scope.GetModelStruct()
@@ -53,20 +52,20 @@ func (c *Context) Select(conn *sqlite.Conn, result interface{}, cond builder.Con
 
 //
 
-func (c *Context) SelectOne(conn *sqlite.Conn, result interface{}, cond builder.Cond) (bool, error) {
+func (c *Context) SelectOne(conn *sqlite.Conn, result any, cond builder.Cond) (bool, error) {
 	found := false
 	resultVal := reflect.ValueOf(result)
 	originalType := resultVal.Type()
 	modelType := originalType
 
 	if resultVal.Type().Kind() != reflect.Ptr {
-		return found, errors.Errorf("SelectOne expects results to be a *Model, but it got a %v", originalType)
+		return found, fmt.Errorf("SelectOne expects results to be a *Model, but it got a %v", originalType)
 	}
 	resultVal = resultVal.Elem()
 
 	scope := c.ScopeMap.ByType(modelType)
 	if scope == nil {
-		return found, errors.Errorf("%v is not a model known to this hades context", modelType)
+		return found, fmt.Errorf("%v is not a model known to this hades context", modelType)
 	}
 
 	ms := scope.GetModelStruct()

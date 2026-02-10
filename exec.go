@@ -5,7 +5,6 @@ import (
 
 	"crawshaw.io/sqlite"
 	"crawshaw.io/sqlite/sqlitex"
-	"github.com/pkg/errors"
 	"xorm.io/builder"
 )
 
@@ -14,7 +13,7 @@ type ResultFn func(stmt *sqlite.Stmt) error
 func (c *Context) Exec(conn *sqlite.Conn, b *builder.Builder, resultFn ResultFn) error {
 	query, args, err := b.ToSQL()
 	if err != nil {
-		return errors.WithStack(err)
+		return err
 	}
 	return c.ExecRaw(conn, query, resultFn, args...)
 }
@@ -22,7 +21,7 @@ func (c *Context) Exec(conn *sqlite.Conn, b *builder.Builder, resultFn ResultFn)
 func (c *Context) ExecWithSearch(conn *sqlite.Conn, b *builder.Builder, search Search, resultFn ResultFn) error {
 	query, args, err := b.ToSQL()
 	if err != nil {
-		return errors.WithStack(err)
+		return err
 	}
 
 	query = search.Apply(query)
@@ -30,7 +29,7 @@ func (c *Context) ExecWithSearch(conn *sqlite.Conn, b *builder.Builder, search S
 	return c.ExecRaw(conn, query, resultFn, args...)
 }
 
-func (c *Context) ExecRaw(conn *sqlite.Conn, query string, resultFn ResultFn, args ...interface{}) error {
+func (c *Context) ExecRaw(conn *sqlite.Conn, query string, resultFn ResultFn, args ...any) error {
 	var startTime time.Time
 	if c.Log {
 		startTime = time.Now()

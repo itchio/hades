@@ -4,7 +4,7 @@ import "reflect"
 
 // Scope contain current operation's information when you perform any operation on the database
 type Scope struct {
-	Value  interface{}
+	Value  any
 	ctx    *Context
 	fields *[]*Field
 }
@@ -15,7 +15,7 @@ func (scope *Scope) IndirectValue() reflect.Value {
 }
 
 // New create a new Scope
-func (scope *Scope) New(value interface{}) *Scope {
+func (scope *Scope) New(value any) *Scope {
 	return &Scope{Value: value}
 }
 
@@ -104,7 +104,7 @@ func (scope *Scope) PrimaryKeyZero() bool {
 }
 
 // PrimaryKeyValue get the primary key's value
-func (scope *Scope) PrimaryKeyValue() interface{} {
+func (scope *Scope) PrimaryKeyValue() any {
 	if field := scope.PrimaryField(); field != nil && field.Field.IsValid() {
 		return field.Field.Interface()
 	}

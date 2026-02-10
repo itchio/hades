@@ -5,7 +5,7 @@ import (
 	"xorm.io/builder"
 )
 
-func (c *Context) Count(conn *sqlite.Conn, model interface{}, cond builder.Cond) (int64, error) {
+func (c *Context) Count(conn *sqlite.Conn, model any, cond builder.Cond) (int64, error) {
 	ms := c.NewScope(model).GetModelStruct()
 
 	query, args, err := builder.Select("count(*)").From(ms.TableName).Where(cond).ToSQL()

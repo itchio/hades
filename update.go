@@ -1,10 +1,10 @@
 package hades
 
 import (
+	"fmt"
 	"reflect"
 
 	"crawshaw.io/sqlite"
-	"github.com/pkg/errors"
 	"xorm.io/builder"
 )
 
@@ -24,11 +24,11 @@ func Where(cond builder.Cond) WhereCond {
 	return whereImpl{cond: cond}
 }
 
-func (c *Context) Update(conn *sqlite.Conn, model interface{}, where WhereCond, updates ...builder.Cond) error {
+func (c *Context) Update(conn *sqlite.Conn, model any, where WhereCond, updates ...builder.Cond) error {
 	modelType := reflect.TypeOf(model)
 	scope := c.ScopeMap.ByType(modelType)
 	if scope == nil {
-		return errors.Errorf("%v is not a know model type", modelType)
+		return fmt.Errorf("%v is not a know model type", modelType)
 	}
 
 	tableName := scope.TableName()

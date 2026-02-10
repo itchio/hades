@@ -26,9 +26,9 @@ func Test_HasMany(t *testing.T) {
 		Qualities []*Quality
 	}
 
-	models := []interface{}{&Quality{}, &Programmer{}}
+	models := []any{&Quality{}, &Programmer{}}
 	withContext(t, models, func(conn *sqlite.Conn, c *hades.Context) {
-		assertCount := func(model interface{}, expectedCount int64) {
+		assertCount := func(model any, expectedCount int64) {
 			t.Helper()
 			var count int64
 			count, err := c.Count(conn, model, builder.NewCond())
@@ -119,7 +119,7 @@ func Test_HasManyThorough(t *testing.T) {
 		Traits []*Trait
 	}
 
-	models := []interface{}{&Car{}, &Trait{}}
+	models := []any{&Car{}, &Trait{}}
 
 	c, err := hades.NewContext(makeConsumer(t), models...)
 	ordie(err)

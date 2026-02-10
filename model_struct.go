@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/jinzhu/inflection"
-	"github.com/pkg/errors"
+	"errors"
 )
 
 type safeModelStructsMap struct {

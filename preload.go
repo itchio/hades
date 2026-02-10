@@ -5,17 +5,16 @@ import (
 	"reflect"
 
 	"crawshaw.io/sqlite"
-	"github.com/pkg/errors"
 )
 
-func (c *Context) Preload(conn *sqlite.Conn, rec interface{}, opts ...PreloadParam) error {
+func (c *Context) Preload(conn *sqlite.Conn, rec any, opts ...PreloadParam) error {
 	params := &preloadParams{}
 	for _, o := range opts {
 		o.ApplyToPreloadParams(params)
 	}
 
 	if len(params.assocs) == 0 {
-		return errors.Errorf("Cannot preload 0 assocs")
+		return fmt.Errorf("Cannot preload 0 assocs")
 	}
 
 	val := reflect.ValueOf(rec)
@@ -27,7 +26,7 @@ func (c *Context) Preload(conn *sqlite.Conn, rec interface{}, opts ...PreloadPar
 		valtyp = valtyp.Elem()
 	}
 	if valtyp.Kind() != reflect.Ptr {
-		return errors.Errorf("Preload expects a []*Model or *Model, but it was passed a %v instead", val.Type())
+		return fmt.Errorf("Preload expects a []*Model or *Model, but it was passed a %v instead", val.Type())
 	}
 
 	riMap := make(RecordInfoMap)
@@ -38,7 +37,7 @@ func (c *Context) Preload(conn *sqlite.Conn, rec interface{}, opts ...PreloadPar
 	}
 	rootInfo, err := c.WalkType(riMap, rootField, valtyp)
 	if err != nil {
-		return errors.WithMessage(err, "waking type tree")
+		return fmt.Errorf("waking type tree: %w", err)
 	}
 
 	var walk func(p reflect.Value, pri *RecordInfo) error
@@ -48,7 +47,7 @@ func (c *Context) Preload(conn *sqlite.Conn, rec interface{}, opts ...PreloadPar
 			ptyp = ptyp.Elem()
 		}
 		if ptyp.Kind() != reflect.Ptr {
-			return errors.Errorf("walk expects a []*Model or *Model, but it was passed a %v instead", p.Type())
+			return fmt.Errorf("walk expects a []*Model or *Model, but it was passed a %v instead", p.Type())
 		}
 
 		for _, cri := range pri.Children {
@@ -64,7 +63,7 @@ func (c *Context) Preload(conn *sqlite.Conn, rec interface{}, opts ...PreloadPar
 
 			switch cri.Relationship.Kind {
 			case "has_many":
-				var keys []interface{}
+				var keys []any
 				for i := 0; i < ps.Len(); i++ {
 					keys = append(keys, ps.Index(i).Elem().FieldByName(cri.Relationship.AssociationForeignFieldNames[0]).Interface())
 				}
@@ -72,10 +71,10 @@ func (c *Context) Preload(conn *sqlite.Conn, rec interface{}, opts ...PreloadPar
 				var err error
 				freshAddr, err = c.fetchPagedByPK(conn, cri.Relationship.ForeignDBNames[0], keys, reflect.SliceOf(cri.Type), cri.Field.Search())
 				if err != nil {
-					return errors.WithMessage(err, "fetching has_many records (paginated)")
+					return fmt.Errorf("fetching has_many records (paginated): %w", err)
 				}
 
-				pByFK := make(map[interface{}]reflect.Value)
+				pByFK := make(map[any]reflect.Value)
 				for i := 0; i < ps.Len(); i++ {
 					rec := ps.Index(i)
 					fk := rec.Elem().FieldByName(cri.Relationship.AssociationForeignFieldNames[0]).Interface()
@@ -97,7 +96,7 @@ func (c *Context) Preload(conn *sqlite.Conn, rec interface{}, opts ...PreloadPar
 				}
 			case "has_one":
 				// child (c, cri) has a parent_id field (p)
-				var keys []interface{}
+				var keys []any
 				for i := 0; i < ps.Len(); i++ {
 					keys = append(keys, ps.Index(i).Elem().FieldByName(cri.Relationship.AssociationForeignFieldNames[0]).Interface())
 				}
@@ -105,11 +104,11 @@ func (c *Context) Preload(conn *sqlite.Conn, rec interface{}, opts ...PreloadPar
 				var err error
 				freshAddr, err = c.fetchPagedByPK(conn, cri.Relationship.ForeignDBNames[0], keys, reflect.SliceOf(cri.Type), cri.Field.Search())
 				if err != nil {
-					return errors.WithMessage(err, "fetching has_one records (paginated)")
+					return fmt.Errorf("fetching has_one records (paginated): %w", err)
 				}
 
 				fresh := freshAddr.Elem()
-				freshByFK := make(map[interface{}]reflect.Value)
+				freshByFK := make(map[any]reflect.Value)
 				for i := 0; i < fresh.Len(); i++ {
 					rec := fresh.Index(i)
 					fk := rec.Elem().FieldByName(cri.Relationship.ForeignFieldNames[0]).Interface()
@@ -125,7 +124,7 @@ func (c *Context) Preload(conn *sqlite.Conn, rec interface{}, opts ...PreloadPar
 				}
 			case "belongs_to":
 				// parent (p) has a child_id field (c, cri)
-				var keys []interface{}
+				var keys []any
 				for i := 0; i < ps.Len(); i++ {
 					keys = append(keys, ps.Index(i).Elem().FieldByName(cri.Relationship.ForeignFieldNames[0]).Interface())
 				}
@@ -133,11 +132,11 @@ func (c *Context) Preload(conn *sqlite.Conn, rec interface{}, opts ...PreloadPar
 				var err error
 				freshAddr, err = c.fetchPagedByPK(conn, cri.Relationship.AssociationForeignDBNames[0], keys, reflect.SliceOf(cri.Type), cri.Field.Search())
 				if err != nil {
-					return errors.WithMessage(err, "fetching belongs_to records (paginated)")
+					return fmt.Errorf("fetching belongs_to records (paginated): %w", err)
 				}
 
 				fresh := freshAddr.Elem()
-				freshByFK := make(map[interface{}]reflect.Value)
+				freshByFK := make(map[any]reflect.Value)
 				for i := 0; i < fresh.Len(); i++ {
 					rec := fresh.Index(i)
 					fk := rec.Elem().FieldByName(cri.Relationship.AssociationForeignFieldNames[0]).Interface()
@@ -152,21 +151,21 @@ func (c *Context) Preload(conn *sqlite.Conn, rec interface{}, opts ...PreloadPar
 					}
 				}
 			default:
-				return errors.Errorf("Preload doesn't know how to handle %s relationships", cri.Relationship.Kind)
+				return fmt.Errorf("Preload doesn't know how to handle %s relationships", cri.Relationship.Kind)
 			}
 
 			fresh := freshAddr.Elem()
 
 			err = walk(fresh, cri)
 			if err != nil {
-				return errors.WithStack(err)
+				return err
 			}
 		}
 		return nil
 	}
 	err = walk(val, rootInfo)
 	if err != nil {
-		return errors.WithStack(err)
+		return err
 	}
 
 	return nil

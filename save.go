@@ -7,13 +7,12 @@ import (
 
 	"crawshaw.io/sqlite"
 	"crawshaw.io/sqlite/sqlitex"
-	"github.com/pkg/errors"
 )
 
 type AllEntities map[reflect.Type]EntityMap
-type EntityMap []interface{}
+type EntityMap []any
 
-func (c *Context) Save(conn *sqlite.Conn, rec interface{}, opts ...SaveParam) (err error) {
+func (c *Context) Save(conn *sqlite.Conn, rec any, opts ...SaveParam) (err error) {
 	defer sqlitex.Save(conn)(&err)
 
 	var params saveParams
@@ -27,7 +26,7 @@ func (c *Context) Save(conn *sqlite.Conn, rec interface{}, opts ...SaveParam) (e
 		valtyp = valtyp.Elem()
 	}
 	if valtyp.Kind() != reflect.Ptr {
-		return errors.Errorf("Save expects a []*Model or a *Model, but it was passed a %v instead", val.Type())
+		return fmt.Errorf("Save expects a []*Model or a *Model, but it was passed a %v instead", val.Type())
 	}
 
 	riMap := make(RecordInfoMap)
@@ -38,7 +37,7 @@ func (c *Context) Save(conn *sqlite.Conn, rec interface{}, opts ...SaveParam) (e
 	}
 	rootRecordInfo, err := c.WalkType(riMap, rootField, valtyp)
 	if err != nil {
-		return errors.WithMessage(err, "walking records to be saved")
+		return fmt.Errorf("walking records to be saved: %w", err)
 	}
 
 	entities := make(AllEntities)
@@ -57,7 +56,7 @@ func (c *Context) Save(conn *sqlite.Conn, rec interface{}, opts ...SaveParam) (e
 				switch vri.Relationship.Kind {
 				case "has_many", "has_one":
 					if len(pri.ModelStruct.PrimaryFields) != 1 {
-						return errors.Errorf("Since %v %s %v, we expected one primary key in %v, but found %d",
+						return fmt.Errorf("Since %v %s %v, we expected one primary key in %v, but found %d",
 							p.Type(),
 							vri.Relationship.Kind,
 							v.Type(),
@@ -67,7 +66,7 @@ func (c *Context) Save(conn *sqlite.Conn, rec interface{}, opts ...SaveParam) (e
 					}
 					pkField := p.Elem().FieldByName(pri.ModelStruct.PrimaryFields[0].Name)
 					if len(vri.Relationship.ForeignFieldNames) != 1 {
-						return errors.Errorf("Since %v %s %v, we expected one foreign field in %v, but found %d",
+						return fmt.Errorf("Since %v %s %v, we expected one foreign field in %v, but found %d",
 							p.Type(),
 							vri.Relationship.Kind,
 							v.Type(),
@@ -79,7 +78,7 @@ func (c *Context) Save(conn *sqlite.Conn, rec interface{}, opts ...SaveParam) (e
 					fkField.Set(pkField)
 				case "belongs_to":
 					if len(vri.ModelStruct.PrimaryFields) != 1 {
-						return errors.Errorf("Since %v %s %v, we expected one primary key in %v, but found %d",
+						return fmt.Errorf("Since %v %s %v, we expected one primary key in %v, but found %d",
 							p.Type(),
 							vri.Relationship.Kind,
 							v.Type(),
@@ -90,7 +89,7 @@ func (c *Context) Save(conn *sqlite.Conn, rec interface{}, opts ...SaveParam) (e
 					pkField := v.Elem().FieldByName(vri.ModelStruct.PrimaryFields[0].Name)
 
 					if len(vri.Relationship.ForeignFieldNames) != 1 {
-						return errors.Errorf("Since %v %s %v, we expected one foreign field in %v, but found %d",
+						return fmt.Errorf("Since %v %s %v, we expected one foreign field in %v, but found %d",
 							p.Type(),
 							vri.Relationship.Kind,
 							v.Type(),
@@ -108,17 +107,17 @@ func (c *Context) Save(conn *sqlite.Conn, rec interface{}, opts ...SaveParam) (e
 			numVisited++
 			err := addEntity(v)
 			if err != nil {
-				return errors.WithMessage(err, "adding entity")
+				return fmt.Errorf("adding entity: %w", err)
 			}
 		}
 
 		if v.Kind() != reflect.Ptr {
-			return errors.Errorf("expected a pointer, but got with %v", v)
+			return fmt.Errorf("expected a pointer, but got with %v", v)
 		}
 		vs := v.Elem()
 
 		if vs.Kind() != reflect.Struct {
-			return errors.Errorf("expected a struct, but got with %v", v)
+			return fmt.Errorf("expected a struct, but got with %v", v)
 		}
 
 		for _, childRi := range vri.Children {
@@ -135,7 +134,7 @@ func (c *Context) Save(conn *sqlite.Conn, rec interface{}, opts ...SaveParam) (e
 			persistChildren := true
 			err := walk(v, vri, child, childRi, persistChildren)
 			if err != nil {
-				return errors.WithMessage(err, "walking child entities to be saved")
+				return fmt.Errorf("walking child entities to be saved: %w", err)
 			}
 		}
 		return nil
@@ -165,7 +164,7 @@ func (c *Context) Save(conn *sqlite.Conn, rec interface{}, opts ...SaveParam) (e
 			for i := 0; i < v.Len(); i++ {
 				err := visit(p, pri, v.Index(i), vri, persist)
 				if err != nil {
-					return errors.WithMessage(err, "walking slice of children")
+					return fmt.Errorf("walking slice of children: %w", err)
 				}
 			}
 
@@ -174,7 +173,7 @@ func (c *Context) Save(conn *sqlite.Conn, rec interface{}, opts ...SaveParam) (e
 
 				parentPF := c.NewScope(p.Interface()).PrimaryField()
 				if parentPF == nil {
-					return errors.Errorf("Can't save %v has_many %v: parent has no primary keys", pri.Type, vri.Type)
+					return fmt.Errorf("Can't save %v has_many %v: parent has no primary keys", pri.Type, vri.Type)
 				}
 				parentPK := parentPF.Field
 
@@ -184,16 +183,16 @@ func (c *Context) Save(conn *sqlite.Conn, rec interface{}, opts ...SaveParam) (e
 						pfNames = append(pfNames, pf.Name)
 					}
 
-					return errors.Errorf("Since %v has_many %v, expected %v to have one primary key. Instead, it has primary fields: %s",
+					return fmt.Errorf("Since %v has_many %v, expected %v to have one primary key. Instead, it has primary fields: %s",
 						pri.Name(), vri.Name(), vri.Name(), strings.Join(pfNames, ", "))
 				}
 
 				valuePF := c.NewScope(v.Interface()).PrimaryField()
 				if valuePF == nil {
-					return errors.Errorf("Can't save %v has_many %v: value has no primary keys", pri.Type, vri.Type)
+					return fmt.Errorf("Can't save %v has_many %v: value has no primary keys", pri.Type, vri.Type)
 				}
 
-				passedPFs := make(map[interface{}]struct{})
+				passedPFs := make(map[any]struct{})
 				for i := 0; i < v.Len(); i++ {
 					rec := v.Index(i)
 					pf := rec.Elem().FieldByName(rel.AssociationForeignFieldNames[0]).Interface()
@@ -214,17 +213,17 @@ func (c *Context) Save(conn *sqlite.Conn, rec interface{}, opts ...SaveParam) (e
 					EscapeIdentifier(rel.AssociationForeignDBNames[0]),
 				)
 
-				var removedPFs []interface{}
+				var removedPFs []any
 
 				err := c.ExecRaw(conn, selectQuery, func(stmt *sqlite.Stmt) error {
-					var pf interface{}
+					var pf any
 					switch pfKind {
 					case reflect.Int64:
 						pf = stmt.ColumnInt64(0)
 					case reflect.String:
 						pf = stmt.ColumnText(0)
 					default:
-						return errors.Errorf("Unsupported primary key for has_many: %v", pfTyp)
+						return fmt.Errorf("Unsupported primary key for has_many: %v", pfTyp)
 					}
 					if _, ok := passedPFs[pf]; !ok {
 						removedPFs = append(removedPFs, pf)
@@ -245,7 +244,7 @@ func (c *Context) Save(conn *sqlite.Conn, rec interface{}, opts ...SaveParam) (e
 		} else {
 			err := visit(p, pri, v, vri, persist)
 			if err != nil {
-				return errors.WithMessage(err, "walking single child")
+				return fmt.Errorf("walking single child: %w", err)
 			}
 		}
 		return nil
@@ -253,14 +252,14 @@ func (c *Context) Save(conn *sqlite.Conn, rec interface{}, opts ...SaveParam) (e
 
 	err = walk(reflect.Zero(reflect.TypeOf(0)), nil, val, rootRecordInfo, !params.omitRoot)
 	if err != nil {
-		return errors.WithMessage(err, "walking all records to be persisted")
+		return fmt.Errorf("walking all records to be persisted: %w", err)
 	}
 
 	for typ, m := range entities {
 		ri := riMap[typ]
 		err := c.saveRows(conn, ri.Field.Mode(), m)
 		if err != nil {
-			return errors.WithMessage(err, "saving rows")
+			return fmt.Errorf("saving rows: %w", err)
 		}
 	}
 
@@ -268,7 +267,7 @@ func (c *Context) Save(conn *sqlite.Conn, rec interface{}, opts ...SaveParam) (e
 		if ri.ManyToMany != nil {
 			err := c.saveJoins(conn, ri.Field.Mode(), ri.ManyToMany)
 			if err != nil {
-				return errors.WithMessage(err, "saving joins")
+				return fmt.Errorf("saving joins: %w", err)
 			}
 		}
 	}

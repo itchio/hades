@@ -28,7 +28,7 @@ func Test_BelongsTo(t *testing.T) {
 		Human   *Human
 	}
 
-	models := []interface{}{&Human{}, &Fate{}, &Joke{}}
+	models := []any{&Human{}, &Fate{}, &Joke{}}
 
 	withContext(t, models, func(conn *sqlite.Conn, c *hades.Context) {
 		someFate := &Fate{

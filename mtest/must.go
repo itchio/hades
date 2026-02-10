@@ -9,7 +9,7 @@ import (
 func Must(t *testing.T, err error) {
 	if err != nil {
 		t.Helper()
-		t.Errorf("%+v", err)
+		t.Errorf("%v", err)
 		t.FailNow()
 	}
 }

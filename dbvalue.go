@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-func DBValue(x interface{}) interface{} {
+func DBValue(x any) any {
 	typ := reflect.TypeOf(x)
 	value := reflect.ValueOf(x)
 	wasPtr := false

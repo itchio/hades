@@ -29,7 +29,7 @@ func Test_HasOne(t *testing.T) {
 		Specialty *Specialty
 	}
 
-	models := []interface{}{&Country{}, &Specialty{}, &Drawback{}}
+	models := []any{&Country{}, &Specialty{}, &Drawback{}}
 
 	withContext(t, models, func(conn *sqlite.Conn, c *hades.Context) {
 		country := &Country{
@@ -43,7 +43,7 @@ func Test_HasOne(t *testing.T) {
 				},
 			},
 		}
-		assertCount := func(model interface{}, expectedCount int64) {
+		assertCount := func(model any, expectedCount int64) {
 			t.Helper()
 			var count int64
 			count, err := c.Count(conn, model, builder.NewCond())

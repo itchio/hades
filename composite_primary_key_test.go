@@ -21,7 +21,7 @@ func Test_CompositePrimaryKey(t *testing.T) {
 		Value     string
 	}
 
-	models := []interface{}{
+	models := []any{
 		&Profile{},
 		&ProfileData{},
 	}
@@ -46,7 +46,7 @@ func Test_SaveDuplicateCompositePrimaryKeys(t *testing.T) {
 		B string `hades:"primary_key"`
 	}
 
-	models := []interface{}{
+	models := []any{
 		&Helicopter{},
 	}
 

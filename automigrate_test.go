@@ -26,7 +26,7 @@ func Test_AutoMigrate(t *testing.T) {
 			FirstName string
 		}
 
-		models := []interface{}{&User{}}
+		models := []any{&User{}}
 
 		c, err := hades.NewContext(makeConsumer(t), models...)
 		ordie(err)
@@ -65,7 +65,7 @@ func Test_AutoMigrate(t *testing.T) {
 			LastName  string
 		}
 
-		models := []interface{}{&User{}}
+		models := []any{&User{}}
 
 		c, err := hades.NewContext(makeConsumer(t), models...)
 		ordie(err)
@@ -118,7 +118,7 @@ func Test_AutoMigrateNoPK(t *testing.T) {
 		Name string
 	}
 
-	models := []interface{}{&Humanoid{}}
+	models := []any{&Humanoid{}}
 
 	c, err := hades.NewContext(makeConsumer(t), models...)
 	ordie(err)
@@ -148,7 +148,7 @@ func Test_AutoMigrateAllValidTypes(t *testing.T) {
 		} `hades:"-"`
 	}
 
-	models := []interface{}{&Humanoid{}}
+	models := []any{&Humanoid{}}
 
 	c, err := hades.NewContext(makeConsumer(t), models...)
 	ordie(err)
@@ -228,7 +228,7 @@ func Test_AutoMigrateSquash(t *testing.T) {
 		Traits AndroidTraits `hades:"squash"`
 	}
 
-	models := []interface{}{&Android{}}
+	models := []any{&Android{}}
 
 	c, err := hades.NewContext(makeConsumer(t), models...)
 	ordie(err)
@@ -296,7 +296,7 @@ func Test_AutoMigratePreservesData(t *testing.T) {
 			Traits AndroidTraits `hades:"squash"`
 		}
 
-		models := []interface{}{&Android{}}
+		models := []any{&Android{}}
 
 		c, err := hades.NewContext(makeConsumer(t), models...)
 		ordie(err)
@@ -340,7 +340,7 @@ func Test_AutoMigratePreservesData(t *testing.T) {
 			Traits AndroidTraits `hades:"squash"`
 		}
 
-		models := []interface{}{&Android{}}
+		models := []any{&Android{}}
 
 		c, err := hades.NewContext(makeConsumer(t), models...)
 		ordie(err)

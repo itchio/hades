@@ -4,12 +4,10 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
-
-	"github.com/pkg/errors"
 )
 
 type JoinRec struct {
-	DestinKey interface{}
+	DestinKey any
 	Record    reflect.Value
 }
 
@@ -29,21 +27,21 @@ type ManyToMany struct {
 	DestinAssocDBName string
 
 	// SourceKey => []JoinRec{DestinKey, Record}
-	Values map[interface{}][]JoinRec
+	Values map[any][]JoinRec
 }
 
 func (c *Context) NewManyToMany(JoinTable string, SourceForeignKeys, DestinationForeignKeys []JoinTableForeignKey) (*ManyToMany, error) {
 	scope := c.ScopeMap.ByDBName(JoinTable)
 	if scope == nil {
-		return nil, errors.Errorf("Could not find model struct for %s: list it explicitly in Models", JoinTable)
+		return nil, fmt.Errorf("Could not find model struct for %s: list it explicitly in Models", JoinTable)
 	}
 
 	if len(SourceForeignKeys) != 1 {
-		return nil, errors.Errorf("For join table %s, expected 1 source foreign keys but got %d",
+		return nil, fmt.Errorf("For join table %s, expected 1 source foreign keys but got %d",
 			JoinTable, len(SourceForeignKeys))
 	}
 	if len(DestinationForeignKeys) != 1 {
-		return nil, errors.Errorf("For join table %s, expected 1 destination foreign keys but got %d",
+		return nil, fmt.Errorf("For join table %s, expected 1 destination foreign keys but got %d",
 			JoinTable, len(DestinationForeignKeys))
 	}
 
@@ -64,7 +62,7 @@ func (c *Context) NewManyToMany(JoinTable string, SourceForeignKeys, Destination
 		DestinDBName:      dfk.DBName,
 		DestinAssocDBName: dfk.AssociationDBName,
 
-		Values: make(map[interface{}][]JoinRec),
+		Values: make(map[any][]JoinRec),
 	}
 	return mtm, nil
 }
@@ -82,7 +80,7 @@ func (mtm *ManyToMany) Add(Source reflect.Value, Destin reflect.Value) {
 	})
 }
 
-func (mtm *ManyToMany) AddKeys(sourceKey interface{}, destinKey interface{}, record reflect.Value) {
+func (mtm *ManyToMany) AddKeys(sourceKey any, destinKey any, record reflect.Value) {
 	mtm.Values[sourceKey] = append(mtm.Values[sourceKey], JoinRec{
 		DestinKey: destinKey,
 		Record:    record,
@@ -131,15 +129,15 @@ type RecordInfoMap map[reflect.Type]*RecordInfo
 
 func (c *Context) WalkType(riMap RecordInfoMap, field AssocField, atyp reflect.Type) (*RecordInfo, error) {
 	if atyp.Kind() != reflect.Ptr {
-		return nil, errors.Errorf("WalkType expects a *Model type, got %v", atyp)
+		return nil, fmt.Errorf("WalkType expects a *Model type, got %v", atyp)
 	}
 	if atyp.Elem().Kind() != reflect.Struct {
-		return nil, errors.Errorf("WalkType expects a *Model type, got %v", atyp)
+		return nil, fmt.Errorf("WalkType expects a *Model type, got %v", atyp)
 	}
 
 	scope := c.ScopeMap.ByType(atyp)
 	if scope == nil {
-		return nil, errors.Errorf("WalkType expects a *Model but %v is not a registered model type", atyp)
+		return nil, fmt.Errorf("WalkType expects a *Model but %v is not a registered model type", atyp)
 	}
 	ms := scope.GetModelStruct()
 
@@ -153,10 +151,10 @@ func (c *Context) WalkType(riMap RecordInfoMap, field AssocField, atyp reflect.T
 	for _, assoc := range field.Children() {
 		sf, ok := ms.StructFieldsByName[assoc.Name()]
 		if !ok {
-			return nil, errors.Errorf("No field '%s' in %s", assoc.Name(), atyp)
+			return nil, fmt.Errorf("No field '%s' in %s", assoc.Name(), atyp)
 		}
 		if sf.Relationship == nil {
-			return nil, errors.Errorf("%s.%s does not describe a relationship", ms.ModelType.Name(), sf.Name)
+			return nil, fmt.Errorf("%s.%s does not describe a relationship", ms.ModelType.Name(), sf.Name)
 		}
 
 		fieldTyp := sf.Struct.Type
@@ -164,16 +162,16 @@ func (c *Context) WalkType(riMap RecordInfoMap, field AssocField, atyp reflect.T
 			fieldTyp = fieldTyp.Elem()
 		}
 		if fieldTyp.Kind() != reflect.Ptr {
-			return nil, errors.Errorf("visitField expects a Slice of Ptr, or a Ptr, but got %v", sf.Struct.Type)
+			return nil, fmt.Errorf("visitField expects a Slice of Ptr, or a Ptr, but got %v", sf.Struct.Type)
 		}
 
 		if c.ScopeMap.ByType(fieldTyp) == nil {
-			return nil, errors.Errorf("%s.%s is not an explicitly listed model (%v)", ms.ModelType.Name(), sf.Name, fieldTyp)
+			return nil, fmt.Errorf("%s.%s is not an explicitly listed model (%v)", ms.ModelType.Name(), sf.Name, fieldTyp)
 		}
 
 		child, err := c.WalkType(riMap, assoc, fieldTyp)
 		if err != nil {
-			return nil, errors.WithMessage(err, "walking type of child")
+			return nil, fmt.Errorf("walking type of child: %w", err)
 		}
 
 		if child == nil {
@@ -186,12 +184,12 @@ func (c *Context) WalkType(riMap RecordInfoMap, field AssocField, atyp reflect.T
 			jth := sf.Relationship.JoinTableHandler
 			djth, ok := jth.(*JoinTableHandler)
 			if !ok {
-				return nil, errors.Errorf("Expected sf.Relationship.JoinTableHandler to be the default JoinTableHandler type, but it's %v", reflect.TypeOf(jth))
+				return nil, fmt.Errorf("Expected sf.Relationship.JoinTableHandler to be the default JoinTableHandler type, but it's %v", reflect.TypeOf(jth))
 			}
 
 			mtm, err := c.NewManyToMany(djth.TableName, jth.SourceForeignKeys(), jth.DestinationForeignKeys())
 			if err != nil {
-				return nil, errors.WithMessage(err, "creating ManyToMany relation")
+				return nil, fmt.Errorf("creating ManyToMany relation: %w", err)
 			}
 			child.ManyToMany = mtm
 		}

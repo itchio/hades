@@ -19,7 +19,7 @@ func Test_PreloadEdgeCases(t *testing.T) {
 		Bar   *Bar
 	}
 
-	models := []interface{}{&Foo{}, &Bar{}}
+	models := []any{&Foo{}, &Bar{}}
 
 	withContext(t, models, func(conn *sqlite.Conn, c *hades.Context) {
 		// non-existent Bar

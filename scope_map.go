@@ -1,9 +1,8 @@
 package hades
 
 import (
+	"fmt"
 	"reflect"
-
-	"github.com/pkg/errors"
 )
 
 type ScopeMap struct {
@@ -18,7 +17,7 @@ func NewScopeMap() *ScopeMap {
 	}
 }
 
-func (sm *ScopeMap) Add(c *Context, m interface{}) error {
+func (sm *ScopeMap) Add(c *Context, m any) error {
 	val := reflect.ValueOf(m)
 
 	if val.Type().Kind() == reflect.Ptr {
@@ -33,7 +32,7 @@ func (sm *ScopeMap) Add(c *Context, m interface{}) error {
 
 	// what should we do if it's not a struct?
 	if reflectType.Kind() != reflect.Struct {
-		return errors.Errorf("hades expects all models to be structs, but got %v instead", reflectType)
+		return fmt.Errorf("hades expects all models to be structs, but got %v instead", reflectType)
 	}
 
 	s := c.NewScope(m)

@@ -16,7 +16,7 @@ func Test_Update(t *testing.T) {
 		Body string
 	}
 
-	models := []interface{}{&Mistake{}}
+	models := []any{&Mistake{}}
 
 	withContext(t, models, func(conn *sqlite.Conn, c *hades.Context) {
 		mistakes := []*Mistake{

@@ -1,11 +1,11 @@
 package hades
 
 import (
+	"fmt"
 	"reflect"
 	"time"
 
 	"crawshaw.io/sqlite"
-	"github.com/pkg/errors"
 )
 
 // ScanIntoRows is used to scan a single sqlite statement into a struct that
@@ -21,19 +21,19 @@ import (
 //     return c.ScanIntoRows(stmt, rows)
 //   })
 //
-func (c *Context) ScanIntoRows(stmt *sqlite.Stmt, slicePtr interface{}) error {
+func (c *Context) ScanIntoRows(stmt *sqlite.Stmt, slicePtr any) error {
 	return c.IntoRowsScanner(slicePtr)(stmt)
 }
 
 // NewScannerIntoRows returns a ResultFn that scans all fields into what
 // is typically an anonymous struct containing multiple squashed models.
 // See ScanIntoRows.
-func (c *Context) IntoRowsScanner(slicePtr interface{}) ResultFn {
+func (c *Context) IntoRowsScanner(slicePtr any) ResultFn {
 	slicePtrVal := reflect.ValueOf(slicePtr)
 	sliceVal := slicePtrVal.Elem()
 	sliceTyp := sliceVal.Type()
 	if sliceTyp.Kind() != reflect.Slice {
-		err := errors.Errorf("ScanIntoRows expects a slice, got a %v", sliceTyp)
+		err := fmt.Errorf("ScanIntoRows expects a slice, got a %v", sliceTyp)
 		return func(stmt *sqlite.Stmt) error {
 			return err
 		}
@@ -145,7 +145,7 @@ func (c *Context) Scan(stmt *sqlite.Stmt, structFields []*StructField, result re
 			}
 			fallthrough
 		default:
-			return errors.Errorf("For model %s, unknown kind %s for field %s", result.Type(), field.Type().Kind(), sf.Name)
+			return fmt.Errorf("For model %s, unknown kind %s for field %s", result.Type(), field.Type().Kind(), sf.Name)
 		}
 
 		i++

@@ -55,7 +55,7 @@ func Test_SquashedInsert(t *testing.T) {
 		Traits BoneTraits `hades:"squash"`
 	}
 
-	models := []interface{}{&Bone{}}
+	models := []any{&Bone{}}
 	withContext(t, models, func(conn *sqlite.Conn, c *hades.Context) {
 		b := &Bone{
 			ID: 128,
@@ -97,7 +97,7 @@ func Test_SquashedFull(t *testing.T) {
 		Games []*FakeGame
 	}
 
-	models := []interface{}{&FakeGame{}, &FakeUser{}}
+	models := []any{&FakeGame{}, &FakeUser{}}
 
 	withContext(t, models, func(conn *sqlite.Conn, c *hades.Context) {
 		fu := &FakeUser{
