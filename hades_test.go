@@ -2,21 +2,26 @@ package hades_test
 
 import (
 	"context"
+	"log/slog"
 	"testing"
 
 	"crawshaw.io/sqlite"
 	"crawshaw.io/sqlite/sqlitex"
 	"github.com/itchio/hades"
 	"github.com/itchio/hades/mtest"
-	"github.com/itchio/headway/state"
 )
 
-func makeConsumer(t *testing.T) *state.Consumer {
-	return &state.Consumer{
-		OnMessage: func(lvl string, msg string) {
-			t.Logf("[%s] %s", lvl, msg)
-		},
-	}
+func testLogger(t *testing.T) *slog.Logger {
+	return slog.New(slog.NewTextHandler(&testWriter{t}, &slog.HandlerOptions{Level: slog.LevelDebug}))
+}
+
+type testWriter struct {
+	t *testing.T
+}
+
+func (w *testWriter) Write(p []byte) (int, error) {
+	w.t.Log(string(p))
+	return len(p), nil
 }
 
 type WithContextFunc func(conn *sqlite.Conn, c *hades.Context)
@@ -29,9 +34,9 @@ func withContext(t *testing.T, models []any, f WithContextFunc) {
 	conn := dbpool.Get(context.Background())
 	defer dbpool.Put(conn)
 
-	c, err := hades.NewContext(makeConsumer(t), models...)
+	c, err := hades.NewContext(models...)
 	mtest.Must(t, err)
-	c.Log = true
+	c.Logger = testLogger(t)
 
 	mtest.Must(t, c.AutoMigrate(conn))
 

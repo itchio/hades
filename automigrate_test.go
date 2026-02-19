@@ -28,9 +28,9 @@ func Test_AutoMigrate(t *testing.T) {
 
 		models := []any{&User{}}
 
-		c, err := hades.NewContext(makeConsumer(t), models...)
+		c, err := hades.NewContext(models...)
 		ordie(err)
-		c.Log = true
+		c.Logger = testLogger(t)
 
 		t.Logf("first migration")
 		ordie(c.AutoMigrate(conn))
@@ -67,9 +67,9 @@ func Test_AutoMigrate(t *testing.T) {
 
 		models := []any{&User{}}
 
-		c, err := hades.NewContext(makeConsumer(t), models...)
+		c, err := hades.NewContext(models...)
 		ordie(err)
-		c.Log = true
+		c.Logger = testLogger(t)
 
 		t.Logf("second migration")
 		ordie(c.AutoMigrate(conn))
@@ -120,9 +120,9 @@ func Test_AutoMigrateNoPK(t *testing.T) {
 
 	models := []any{&Humanoid{}}
 
-	c, err := hades.NewContext(makeConsumer(t), models...)
+	c, err := hades.NewContext(models...)
 	ordie(err)
-	c.Log = true
+	c.Logger = testLogger(t)
 
 	err = c.AutoMigrate(conn)
 	assert.Error(t, err)
@@ -150,9 +150,9 @@ func Test_AutoMigrateAllValidTypes(t *testing.T) {
 
 	models := []any{&Humanoid{}}
 
-	c, err := hades.NewContext(makeConsumer(t), models...)
+	c, err := hades.NewContext(models...)
 	ordie(err)
-	c.Log = true
+	c.Logger = testLogger(t)
 
 	ordie(c.AutoMigrate(conn))
 
@@ -230,9 +230,9 @@ func Test_AutoMigrateSquash(t *testing.T) {
 
 	models := []any{&Android{}}
 
-	c, err := hades.NewContext(makeConsumer(t), models...)
+	c, err := hades.NewContext(models...)
 	ordie(err)
-	c.Log = true
+	c.Logger = testLogger(t)
 
 	ordie(c.AutoMigrate(conn))
 	defer c.ExecRaw(conn, "DROP TABLE androids", nil)
@@ -298,9 +298,9 @@ func Test_AutoMigratePreservesData(t *testing.T) {
 
 		models := []any{&Android{}}
 
-		c, err := hades.NewContext(makeConsumer(t), models...)
+		c, err := hades.NewContext(models...)
 		ordie(err)
-		c.Log = true
+		c.Logger = testLogger(t)
 
 		{
 			var migrateStats hades.AutoMigrateStats
@@ -342,9 +342,9 @@ func Test_AutoMigratePreservesData(t *testing.T) {
 
 		models := []any{&Android{}}
 
-		c, err := hades.NewContext(makeConsumer(t), models...)
+		c, err := hades.NewContext(models...)
 		ordie(err)
-		c.Log = true
+		c.Logger = testLogger(t)
 
 		{
 			var migrateStats hades.AutoMigrateStats

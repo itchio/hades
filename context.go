@@ -1,22 +1,17 @@
 package hades
 
 import (
-	"github.com/itchio/headway/state"
+	"log/slog"
 )
 
 type Context struct {
 	ScopeMap *ScopeMap
-	Consumer *state.Consumer
+	Logger   *slog.Logger
 	Error    error
-	Log      bool
 }
 
-func NewContext(consumer *state.Consumer, models ...any) (*Context, error) {
-	if consumer == nil {
-		consumer = &state.Consumer{}
-	}
+func NewContext(models ...any) (*Context, error) {
 	c := &Context{
-		Consumer: consumer,
 		ScopeMap: NewScopeMap(),
 	}
 

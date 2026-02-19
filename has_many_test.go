@@ -121,9 +121,9 @@ func Test_HasManyThorough(t *testing.T) {
 
 	models := []any{&Car{}, &Trait{}}
 
-	c, err := hades.NewContext(makeConsumer(t), models...)
+	c, err := hades.NewContext(models...)
 	ordie(err)
-	c.Log = true
+	c.Logger = testLogger(t)
 
 	ordie(c.AutoMigrate(conn))
 
@@ -144,9 +144,9 @@ func Test_HasManyThorough(t *testing.T) {
 	assert.EqualValues(t, 0, traitCount, "no traits should exist before save")
 
 	t.Logf("...snip tons of INSERT...")
-	c.Log = false
+	c.Logger = nil
 	ordie(c.Save(conn, car, hades.Assoc("Traits")))
-	c.Log = true
+	c.Logger = testLogger(t)
 
 	numTraits := len(car.Traits)
 

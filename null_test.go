@@ -10,17 +10,10 @@ import (
 	"crawshaw.io/sqlite"
 	"crawshaw.io/sqlite/sqlitex"
 	"github.com/itchio/hades"
-	"github.com/itchio/headway/state"
 	"xorm.io/builder"
 )
 
 func Test_Null(t *testing.T) {
-	consumer := &state.Consumer{
-		OnMessage: func(lvl string, message string) {
-			t.Logf("[%s] %s", lvl, message)
-		},
-	}
-
 	type Download struct {
 		ID           int64
 		FinishedAt   *time.Time
@@ -28,11 +21,11 @@ func Test_Null(t *testing.T) {
 		ErrorMessage *string
 	}
 
-	c, err := hades.NewContext(consumer, &Download{})
+	c, err := hades.NewContext(&Download{})
 	if err != nil {
 		panic(err)
 	}
-	c.Log = true
+	c.Logger = testLogger(t)
 
 	sqlite.Logger = func(code sqlite.ErrorCode, msg []byte) {
 		t.Logf("[SQLITE] %d %s", code, string(msg))

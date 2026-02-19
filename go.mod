@@ -4,7 +4,6 @@ go 1.21
 
 require (
 	crawshaw.io/sqlite v0.2.5
-	github.com/itchio/headway v0.0.0-20191015112415-46f64dd4d524
 	github.com/jinzhu/inflection v1.0.0
 	github.com/stretchr/testify v1.11.1
 	xorm.io/builder v0.3.6

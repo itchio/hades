@@ -228,9 +228,9 @@ func Test_ManyToManyThorough(t *testing.T) {
 
 	models := []any{&Piece{}, &Author{}, &PieceAuthor{}}
 
-	c, err := hades.NewContext(makeConsumer(t), models...)
+	c, err := hades.NewContext(models...)
 	ordie(err)
-	c.Log = true
+	c.Logger = testLogger(t)
 
 	ordie(c.AutoMigrate(conn))
 

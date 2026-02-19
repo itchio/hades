@@ -1,6 +1,8 @@
 package hades
 
 import (
+	"context"
+	"log/slog"
 	"time"
 
 	"crawshaw.io/sqlite"
@@ -31,17 +33,25 @@ func (c *Context) ExecWithSearch(conn *sqlite.Conn, b *builder.Builder, search S
 
 func (c *Context) ExecRaw(conn *sqlite.Conn, query string, resultFn ResultFn, args ...any) error {
 	var startTime time.Time
-	if c.Log {
+	debugLogging := c.Logger != nil && c.Logger.Enabled(context.Background(), slog.LevelDebug)
+	if debugLogging {
 		startTime = time.Now()
 	}
 
 	err := sqlitex.Exec(conn, query, resultFn, args...)
 
-	if c.Log {
-		c.Consumer.Debugf("[%s] %s %+v", time.Since(startTime), query, args)
-		if err != nil {
-			c.Consumer.Debugf("error: %+v", err)
+	if debugLogging {
+		duration := time.Since(startTime)
+		attrs := []slog.Attr{
+			slog.String("query", query),
+			slog.Any("args", args),
+			slog.Duration("duration", duration),
 		}
+		if err != nil {
+			attrs = append(attrs, slog.Any("error", err))
+		}
+		c.Logger.LogAttrs(nil, slog.LevelDebug, "hades query", attrs...)
 	}
+
 	return err
 }

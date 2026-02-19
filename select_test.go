@@ -8,28 +8,21 @@ import (
 	"crawshaw.io/sqlite/sqlitex"
 	"github.com/itchio/hades"
 	"github.com/itchio/hades/mtest"
-	"github.com/itchio/headway/state"
 	"github.com/stretchr/testify/assert"
 	"xorm.io/builder"
 )
 
 func Test_Select(t *testing.T) {
-	consumer := &state.Consumer{
-		OnMessage: func(lvl string, message string) {
-			t.Logf("[%s] %s", lvl, message)
-		},
-	}
-
 	type Honor struct {
 		ID    int64
 		Title string
 	}
 
-	c, err := hades.NewContext(consumer, &Honor{})
+	c, err := hades.NewContext(&Honor{})
 	if err != nil {
 		panic(err)
 	}
-	c.Log = true
+	c.Logger = testLogger(t)
 
 	sqlite.Logger = func(code sqlite.ErrorCode, msg []byte) {
 		t.Logf("[SQLITE] %d %s", code, string(msg))
@@ -107,12 +100,6 @@ func Test_Select(t *testing.T) {
 }
 
 func Test_SelectSquashed(t *testing.T) {
-	consumer := &state.Consumer{
-		OnMessage: func(lvl string, message string) {
-			t.Logf("[%s] %s", lvl, message)
-		},
-	}
-
 	type AndroidTraits struct {
 		Wise  bool
 		Funny bool
@@ -123,11 +110,11 @@ func Test_SelectSquashed(t *testing.T) {
 		Traits AndroidTraits `hades:"squash"`
 	}
 
-	c, err := hades.NewContext(consumer, &Android{})
+	c, err := hades.NewContext(&Android{})
 	if err != nil {
 		panic(err)
 	}
-	c.Log = true
+	c.Logger = testLogger(t)
 
 	sqlite.Logger = func(code sqlite.ErrorCode, msg []byte) {
 		t.Logf("[SQLITE] %d %s", code, string(msg))

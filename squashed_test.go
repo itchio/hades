@@ -32,7 +32,7 @@ func Test_SquashedToEq(t *testing.T) {
 		},
 	}
 
-	c, err := hades.NewContext(nil, &Bone{})
+	c, err := hades.NewContext(&Bone{})
 	mtest.Must(t, err)
 
 	boneScope := c.NewScope(b)
