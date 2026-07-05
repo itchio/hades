@@ -13,29 +13,14 @@ import (
 func (scope *Scope) ToSets() []string {
 	var sets []string
 
-	var processField func(sf *StructField)
-	processField = func(sf *StructField) {
-		if sf.IsSquashed {
-			for _, nsf := range sf.SquashedFields {
-				processField(nsf)
-			}
-		}
-
-		if !sf.IsNormal {
-			return
-		}
-
+	scope.GetModelStruct().EachNormalField(func(sf *StructField) error {
 		if sf.IsPrimaryKey {
-			return
+			return nil
 		}
-
 		name := EscapeIdentifier(sf.DBName)
 		sets = append(sets, fmt.Sprintf("%s=excluded.%s", name, name))
-	}
-
-	for _, sf := range scope.GetStructFields() {
-		processField(sf)
-	}
+		return nil
+	})
 
 	return sets
 }

@@ -58,29 +58,13 @@ func (c *Context) syncTable(conn *sqlite.Conn, stats *AutoMigrateStats, ms *Mode
 	numNewCols := 0
 	isMissingCols := false
 
-	{
-		var processField func(sf *StructField)
-		processField = func(sf *StructField) {
-			if sf.IsSquashed {
-				for _, nsf := range sf.SquashedFields {
-					processField(nsf)
-				}
-			}
-
-			if !sf.IsNormal {
-				return
-			}
-			numNewCols++
-
-			if _, ok := oldColumns[sf.DBName]; !ok {
-				isMissingCols = true
-				return
-			}
+	ms.EachNormalField(func(sf *StructField) error {
+		numNewCols++
+		if _, ok := oldColumns[sf.DBName]; !ok {
+			isMissingCols = true
 		}
-		for _, sf := range ms.StructFields {
-			processField(sf)
-		}
-	}
+		return nil
+	})
 
 	if !isMissingCols && numOldCols == numNewCols {
 		// all done
@@ -106,27 +90,12 @@ func (c *Context) syncTable(conn *sqlite.Conn, stats *AutoMigrateStats, ms *Mode
 	}
 
 	var columns []string
-	{
-		var processField func(sf *StructField)
-		processField = func(sf *StructField) {
-			if sf.IsSquashed {
-				for _, nsf := range sf.SquashedFields {
-					processField(nsf)
-				}
-			}
-
-			if !sf.IsNormal {
-				return
-			}
-
-			if _, ok := oldColumns[sf.DBName]; ok {
-				columns = append(columns, EscapeIdentifier(sf.DBName))
-			}
+	ms.EachNormalField(func(sf *StructField) error {
+		if _, ok := oldColumns[sf.DBName]; ok {
+			columns = append(columns, EscapeIdentifier(sf.DBName))
 		}
-		for _, sf := range ms.StructFields {
-			processField(sf)
-		}
-	}
+		return nil
+	})
 	var columnList = strings.Join(columns, ",")
 
 	query := fmt.Sprintf("INSERT INTO %s (%s) SELECT %s FROM %s",
@@ -159,21 +128,7 @@ func (c *Context) createTable(conn *sqlite.Conn, ms *ModelStruct) error {
 	var columns []string
 	var pks []string
 
-	var processField func(sf *StructField) error
-	processField = func(sf *StructField) error {
-		if sf.IsSquashed {
-			for _, nsf := range sf.SquashedFields {
-				err := processField(nsf)
-				if err != nil {
-					return err
-				}
-			}
-		}
-
-		if !sf.IsNormal {
-			return nil
-		}
-
+	err := ms.EachNormalField(func(sf *StructField) error {
 		var sqliteType string
 		typ := sf.Struct.Type
 		if typ.Kind() == reflect.Ptr {
@@ -207,13 +162,9 @@ func (c *Context) createTable(conn *sqlite.Conn, ms *ModelStruct) error {
 		column := fmt.Sprintf(`%s %s%s`, EscapeIdentifier(sf.DBName), sqliteType, modifier)
 		columns = append(columns, column)
 		return nil
-	}
-
-	for _, sf := range ms.StructFields {
-		err := processField(sf)
-		if err != nil {
-			return err
-		}
+	})
+	if err != nil {
+		return err
 	}
 
 	if len(pks) > 0 {

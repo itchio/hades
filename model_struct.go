@@ -507,6 +507,34 @@ func (scope *Scope) GetStructFields() (fields []*StructField) {
 	return scope.GetModelStruct().StructFields
 }
 
+// EachNormalField calls fn for every field that maps to a database column,
+// descending into squashed fields. It stops at and returns fn's first
+// non-nil error.
+func (ms *ModelStruct) EachNormalField(fn func(sf *StructField) error) error {
+	var walk func(sf *StructField) error
+	walk = func(sf *StructField) error {
+		if sf.IsSquashed {
+			for _, nsf := range sf.SquashedFields {
+				err := walk(nsf)
+				if err != nil {
+					return err
+				}
+			}
+		}
+		if sf.IsNormal {
+			return fn(sf)
+		}
+		return nil
+	}
+	for _, sf := range ms.StructFields {
+		err := walk(sf)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func parseTagSetting(reflectType reflect.Type, fieldName string, tags reflect.StructTag) map[TagSetting]string {
 	setting := map[TagSetting]string{}
 	if str, ok := tags.Lookup("hades"); ok {

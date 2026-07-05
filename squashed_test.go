@@ -38,10 +38,11 @@ func Test_SquashedToEq(t *testing.T) {
 	boneScope := c.NewScope(b)
 	eq := boneScope.ToEq(reflect.ValueOf(b))
 
+	// ToEq keys are SQL-ready (escaped) identifiers, not bare column names
 	assert.EqualValues(t, 3, len(eq))
-	assert.EqualValues(t, 510, eq["id"])
-	assert.EqualValues(t, "cranium", eq["name"])
-	assert.EqualValues(t, 3, eq["goodness"])
+	assert.EqualValues(t, 510, eq[`"id"`])
+	assert.EqualValues(t, "cranium", eq[`"name"`])
+	assert.EqualValues(t, 3, eq[`"goodness"`])
 }
 
 func Test_SquashedInsert(t *testing.T) {
