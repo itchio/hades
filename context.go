@@ -8,6 +8,9 @@ type Context struct {
 	ScopeMap *ScopeMap
 	Logger   *slog.Logger
 	Error    error
+
+	// secondary indexes registered via DeclareIndex, maintained by AutoMigrate
+	indexes []IndexSpec
 }
 
 func NewContext(models ...any) (*Context, error) {

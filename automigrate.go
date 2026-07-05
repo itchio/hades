@@ -14,20 +14,32 @@ type AutoMigrateStats struct {
 	NumCreated  int64
 	NumMigrated int64
 	NumCurrent  int64
+
+	NumIndexesCreated int64
+	NumIndexesDropped int64
 }
 
 func (c *Context) AutoMigrate(conn *sqlite.Conn) error {
 	return c.AutoMigrateEx(conn, &AutoMigrateStats{})
 }
 
-func (c *Context) AutoMigrateEx(conn *sqlite.Conn, stats *AutoMigrateStats) error {
+func (c *Context) AutoMigrateEx(conn *sqlite.Conn, stats *AutoMigrateStats) (err error) {
+	// the whole run is one transaction (per-table savepoints nest inside):
+	// table rebuilds drop secondary indexes together with the table, and
+	// declared indexes are only re-created by ensureIndexes after all
+	// tables are synced — without an enclosing transaction, a failed or
+	// interrupted run would strand already-committed tables without their
+	// indexes (and commit a half-applied multi-table schema change)
+	defer sqlitex.Save(conn)(&err)
+
 	for _, m := range c.ScopeMap.byDBName {
-		err := c.syncTable(conn, stats, m.GetModelStruct())
+		err = c.syncTable(conn, stats, m.GetModelStruct())
 		if err != nil {
 			return err
 		}
 	}
-	return nil
+
+	return c.ensureIndexes(conn, stats)
 }
 
 func (c *Context) syncTable(conn *sqlite.Conn, stats *AutoMigrateStats, ms *ModelStruct) (err error) {
