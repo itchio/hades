@@ -15,3 +15,12 @@ func Test_Search(t *testing.T) {
 	assert.EqualValues(t, "x ORDER BY id asc", Search{}.OrderBy("id asc").Apply("x"))
 	assert.EqualValues(t, "x ORDER BY id asc, created_at desc", Search{}.OrderBy("id asc").OrderBy("created_at desc").Apply("x"))
 }
+
+func Test_SearchOrderArgs(t *testing.T) {
+	assert.Empty(t, Search{}.OrderBy("id asc").OrderArgs())
+
+	s := Search{}.OrderBy("(title = ?) desc", "exact").OrderBy("(kind = ?) asc", 42)
+	assert.EqualValues(t, "x ORDER BY (title = ?) desc, (kind = ?) asc", s.Apply("x"))
+	// args accumulate in the same order their expressions appear
+	assert.EqualValues(t, []any{"exact", 42}, s.OrderArgs())
+}

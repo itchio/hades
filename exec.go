@@ -27,6 +27,7 @@ func (c *Context) ExecWithSearch(conn *sqlite.Conn, b *builder.Builder, search S
 	}
 
 	query = search.Apply(query)
+	args = append(args, search.orderArgs...)
 
 	return c.ExecRaw(conn, query, resultFn, args...)
 }

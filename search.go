@@ -21,11 +21,12 @@ type join struct {
 }
 
 type Search struct {
-	groups []string
-	orders []string
-	joins  []join
-	offset *int64
-	limit  *int64
+	groups    []string
+	orders    []string
+	orderArgs []any
+	joins     []join
+	offset    *int64
+	limit     *int64
 }
 
 func (s Search) GroupBy(group string) Search {
@@ -33,9 +34,20 @@ func (s Search) GroupBy(group string) Search {
 	return s
 }
 
-func (s Search) OrderBy(order string) Search {
+// OrderBy appends an ORDER BY expression, which may contain `?`
+// placeholders bound to args. Since Apply emits ORDER BY after the WHERE
+// clause, callers executing the query must bind OrderArgs after the
+// WHERE clause's arguments (Select and ExecWithSearch do this).
+func (s Search) OrderBy(order string, args ...any) Search {
 	s.orders = append(s.orders, order)
+	s.orderArgs = append(s.orderArgs, args...)
 	return s
+}
+
+// OrderArgs returns the placeholder arguments accumulated from OrderBy
+// calls, in the order their expressions appear in the query.
+func (s Search) OrderArgs() []any {
+	return s.orderArgs
 }
 
 func (s Search) Limit(limit int64) Search {

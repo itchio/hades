@@ -38,6 +38,7 @@ func (c *Context) Select(conn *sqlite.Conn, result any, cond builder.Cond, searc
 		return err
 	}
 	query = search.Apply(query)
+	args = append(args, search.orderArgs...)
 
 	return c.ExecRaw(conn, query, func(stmt *sqlite.Stmt) error {
 		el := reflect.New(ms.ModelType)
