@@ -86,7 +86,8 @@ func (c *Context) syncTable(conn *sqlite.Conn, stats *AutoMigrateStats, ms *Mode
 
 	stats.NumMigrated++
 	tempName := fmt.Sprintf("__hades_migrate__%s__%d__", tableName, time.Now().UnixNano())
-	err = c.ExecRaw(conn, fmt.Sprintf("CREATE TABLE %s AS SELECT * FROM %s", tempName, tableName), nil)
+	err = c.ExecRaw(conn, fmt.Sprintf("CREATE TABLE %s AS SELECT * FROM %s",
+		EscapeIdentifier(tempName), EscapeIdentifier(tableName)), nil)
 	if err != nil {
 		return err
 	}
@@ -111,10 +112,10 @@ func (c *Context) syncTable(conn *sqlite.Conn, stats *AutoMigrateStats, ms *Mode
 	var columnList = strings.Join(columns, ",")
 
 	query := fmt.Sprintf("INSERT INTO %s (%s) SELECT %s FROM %s",
-		tableName,
+		EscapeIdentifier(tableName),
 		columnList,
 		columnList,
-		tempName,
+		EscapeIdentifier(tempName),
 	)
 
 	err = c.ExecRaw(conn, query, nil)
@@ -168,7 +169,7 @@ func (c *Context) createTable(conn *sqlite.Conn, ms *ModelStruct) error {
 		}
 		modifier := ""
 		if sf.IsPrimaryKey {
-			pks = append(pks, sf.DBName)
+			pks = append(pks, EscapeIdentifier(sf.DBName))
 			modifier = " NOT NULL"
 		}
 		column := fmt.Sprintf(`%s %s%s`, EscapeIdentifier(sf.DBName), sqliteType, modifier)

@@ -97,34 +97,53 @@ func (c *Context) Scan(stmt *sqlite.Stmt, structFields []*StructField, result re
 			typ = typ.Elem()
 		}
 
+		// pointer fields go through reflect.New(typ) rather than
+		// reflect.ValueOf(&val) so that any width (*int32, *uint, ...) and
+		// named types (*SomeString) are assignable, not just the exact type
+		// of val
 		switch typ.Kind() {
-		case reflect.Int64, reflect.Int32, reflect.Int16, reflect.Int8, reflect.Int,
-			reflect.Uint64, reflect.Uint32, reflect.Uint16, reflect.Uint8, reflect.Uint:
-
+		case reflect.Int64, reflect.Int32, reflect.Int16, reflect.Int8, reflect.Int:
 			val := stmt.ColumnInt64(i)
 			if wasPtr {
-				field.Set(reflect.ValueOf(&val))
+				ptr := reflect.New(typ)
+				ptr.Elem().SetInt(val)
+				field.Set(ptr)
 			} else {
 				fieldEl.SetInt(val)
+			}
+		case reflect.Uint64, reflect.Uint32, reflect.Uint16, reflect.Uint8, reflect.Uint:
+			val := stmt.ColumnInt64(i)
+			if wasPtr {
+				ptr := reflect.New(typ)
+				ptr.Elem().SetUint(uint64(val))
+				field.Set(ptr)
+			} else {
+				fieldEl.SetUint(uint64(val))
 			}
 		case reflect.Float64, reflect.Float32:
 			val := stmt.ColumnFloat(i)
 			if wasPtr {
-				field.Set(reflect.ValueOf(&val))
+				ptr := reflect.New(typ)
+				ptr.Elem().SetFloat(val)
+				field.Set(ptr)
 			} else {
 				fieldEl.SetFloat(val)
 			}
 		case reflect.Bool:
 			val := stmt.ColumnInt(i) == 1
 			if wasPtr {
-				field.Set(reflect.ValueOf(&val))
+				ptr := reflect.New(typ)
+				ptr.Elem().SetBool(val)
+				field.Set(ptr)
 			} else {
 				fieldEl.SetBool(val)
 			}
 		case reflect.String:
 			val := stmt.ColumnText(i)
 			if wasPtr {
-				field.Set(reflect.ValueOf(&val))
+				ptr := reflect.New(typ)
+				ptr.Elem().SetString(val)
+				field.Set(ptr)
 			} else {
 				fieldEl.SetString(val)
 			}

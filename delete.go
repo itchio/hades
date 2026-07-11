@@ -21,6 +21,6 @@ func (c *Context) Delete(conn *sqlite.Conn, model any, cond builder.Cond) error 
 		return fmt.Errorf("refusing to blindly delete all %v without an explicit builder.Expr(\"1\") clause", modelType)
 	}
 
-	b := builder.Delete(cond).From(scope.TableName())
+	b := builder.Delete(cond).From(EscapeIdentifier(scope.TableName()))
 	return c.Exec(conn, b, nil)
 }

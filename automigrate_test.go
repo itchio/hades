@@ -384,3 +384,46 @@ func Test_AutoMigratePreservesData(t *testing.T) {
 		assert.EqualValues(t, refAndroid, &a)
 	}
 }
+
+// "references" (pluralized from Reference) is an SQL keyword: creating,
+// rebuilding, and re-filling the table must quote the table name everywhere
+func Test_AutoMigrateKeywordTableName(t *testing.T) {
+	dbpool, err := sqlitex.Open("file:memory:?mode=memory", 0, 10)
+	ordie(err)
+	defer dbpool.Close()
+
+	conn := dbpool.Get(context.Background())
+	defer dbpool.Put(conn)
+
+	{
+		type Reference struct {
+			ID int64
+		}
+		c, err := hades.NewContext(&Reference{})
+		ordie(err)
+		c.Logger = testLogger(t)
+		ordie(c.AutoMigrate(conn))
+		ordie(c.Save(conn, &Reference{ID: 12}))
+	}
+
+	// adding a column forces the rebuild path (CREATE TABLE AS / INSERT
+	// INTO ... SELECT), which interpolates the table name
+	{
+		type Reference struct {
+			ID    int64
+			Title string
+		}
+		c, err := hades.NewContext(&Reference{})
+		ordie(err)
+		c.Logger = testLogger(t)
+
+		stats := &hades.AutoMigrateStats{}
+		ordie(c.AutoMigrateEx(conn, stats))
+		assert.EqualValues(t, 1, stats.NumMigrated)
+
+		var out Reference
+		found, err := c.SelectOne(conn, &out, builder.Eq{"id": 12})
+		ordie(err)
+		assert.True(t, found, "row survived keyword-table rebuild")
+	}
+}

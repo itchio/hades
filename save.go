@@ -192,10 +192,14 @@ func (c *Context) Save(conn *sqlite.Conn, rec any, opts ...SaveParam) (err error
 					return fmt.Errorf("Can't save %v has_many %v: value has no primary keys", pri.Type, vri.Type)
 				}
 
+				// the cull identifies child rows by the CHILD's own primary
+				// key (valuePF); rel.AssociationForeign* names the PARENT's
+				// primary key and only coincidentally works when both are
+				// named "id"
 				passedPFs := make(map[any]struct{})
 				for i := 0; i < v.Len(); i++ {
 					rec := v.Index(i)
-					pf := rec.Elem().FieldByName(rel.AssociationForeignFieldNames[0]).Interface()
+					pf := rec.Elem().FieldByName(valuePF.Name).Interface()
 					passedPFs[pf] = struct{}{}
 				}
 
@@ -203,14 +207,14 @@ func (c *Context) Save(conn *sqlite.Conn, rec any, opts ...SaveParam) (err error
 				pfKind := pfTyp.Kind()
 
 				selectQuery := fmt.Sprintf(`SELECT %s FROM %s WHERE %s = ?`,
-					EscapeIdentifier(rel.AssociationForeignDBNames[0]),
+					EscapeIdentifier(valuePF.DBName),
 					EscapeIdentifier(vri.ModelStruct.TableName),
 					EscapeIdentifier(rel.ForeignDBNames[0]),
 				)
 				deleteQuery := fmt.Sprintf(`DELETE FROM %s WHERE %s = ? AND %s = ?`,
 					EscapeIdentifier(vri.ModelStruct.TableName),
 					EscapeIdentifier(rel.ForeignDBNames[0]),
-					EscapeIdentifier(rel.AssociationForeignDBNames[0]),
+					EscapeIdentifier(valuePF.DBName),
 				)
 
 				var removedPFs []any

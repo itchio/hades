@@ -8,7 +8,7 @@ import (
 func (c *Context) Count(conn *sqlite.Conn, model any, cond builder.Cond) (int64, error) {
 	ms := c.NewScope(model).GetModelStruct()
 
-	query, args, err := builder.Select("count(*)").From(ms.TableName).Where(cond).ToSQL()
+	query, args, err := builder.Select("count(*)").From(EscapeIdentifier(ms.TableName)).Where(cond).ToSQL()
 	if err != nil {
 		return 0, err
 	}

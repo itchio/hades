@@ -28,7 +28,7 @@ func (scope *Scope) ToSets() []string {
 func (c *Context) Upsert(conn *sqlite.Conn, scope *Scope, rec reflect.Value) error {
 	eq := scope.ToEq(rec)
 
-	b := builder.Insert(eq).Into(scope.TableName())
+	b := builder.Insert(eq).Into(EscapeIdentifier(scope.TableName()))
 
 	sql, args, err := b.ToSQL()
 	if err != nil {
@@ -44,7 +44,7 @@ func (c *Context) Upsert(conn *sqlite.Conn, scope *Scope, rec reflect.Value) err
 	} else {
 		var pfNames []string
 		for _, pf := range scope.GetModelStruct().PrimaryFields {
-			pfNames = append(pfNames, pf.DBName)
+			pfNames = append(pfNames, EscapeIdentifier(pf.DBName))
 		}
 
 		sql = fmt.Sprintf("%s ON CONFLICT(%s) DO UPDATE SET %s",

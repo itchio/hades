@@ -42,7 +42,7 @@ func withContext(t *testing.T, models []any, f WithContextFunc) {
 
 	defer func() {
 		c.ScopeMap.Each(func(scope *hades.Scope) error {
-			return c.ExecRaw(conn, "DROP TABLE "+scope.TableName(), nil)
+			return c.ExecRaw(conn, "DROP TABLE "+hades.EscapeIdentifier(scope.TableName()), nil)
 		})
 	}()
 

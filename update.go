@@ -32,6 +32,6 @@ func (c *Context) Update(conn *sqlite.Conn, model any, where WhereCond, updates 
 	}
 
 	tableName := scope.TableName()
-	b := builder.Update(updates...).Where(where.Cond()).From(tableName)
+	b := builder.Update(updates...).Where(where.Cond()).From(EscapeIdentifier(tableName))
 	return c.Exec(conn, b, nil)
 }

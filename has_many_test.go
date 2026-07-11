@@ -168,3 +168,45 @@ func Test_HasManyThorough(t *testing.T) {
 	ordie(err)
 	assert.EqualValues(t, 2, traitCount, "only the traist we want should exist after last save")
 }
+
+// AssocReplace must cull by the CHILD's own primary key; it used to use the
+// parent's PK name against the child table, which only worked when both
+// models named their key "id"
+func Test_HasManyReplaceCustomPrimaryKey(t *testing.T) {
+	type Member struct {
+		Nickname string `hades:"primary_key"`
+		BandName string
+	}
+	type Band struct {
+		Name    string `hades:"primary_key"`
+		Members []*Member
+	}
+
+	models := []any{&Member{}, &Band{}}
+	withContext(t, models, func(conn *sqlite.Conn, c *hades.Context) {
+		mtest.Must(t, c.Save(conn, &Band{
+			Name:    "led hades",
+			Members: []*Member{{Nickname: "alice"}, {Nickname: "bob"}},
+		}, hades.Assoc("Members")))
+
+		count, err := c.Count(conn, &Member{}, builder.NewCond())
+		mtest.Must(t, err)
+		assert.EqualValues(t, 2, count)
+
+		// re-save with bob omitted: replace mode must delete his row
+		mtest.Must(t, c.Save(conn, &Band{
+			Name:    "led hades",
+			Members: []*Member{{Nickname: "alice"}},
+		}, hades.AssocReplace("Members")))
+
+		count, err = c.Count(conn, &Member{}, builder.NewCond())
+		mtest.Must(t, err)
+		assert.EqualValues(t, 1, count)
+
+		var remaining Member
+		found, err := c.SelectOne(conn, &remaining, builder.Eq{"band_name": "led hades"})
+		mtest.Must(t, err)
+		assert.True(t, found)
+		assert.EqualValues(t, "alice", remaining.Nickname)
+	})
+}

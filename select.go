@@ -30,7 +30,7 @@ func (c *Context) Select(conn *sqlite.Conn, result any, cond builder.Cond, searc
 	ms := scope.GetModelStruct()
 	columns, fields := c.selectFields(ms)
 
-	b := builder.Select(columns...).From(ms.TableName).Where(cond)
+	b := builder.Select(columns...).From(EscapeIdentifier(ms.TableName)).Where(cond)
 	search.ApplyJoins(b)
 
 	query, args, err := b.ToSQL()
@@ -72,7 +72,7 @@ func (c *Context) SelectOne(conn *sqlite.Conn, result any, cond builder.Cond) (b
 	ms := scope.GetModelStruct()
 	columns, fields := c.selectFields(ms)
 
-	query, args, err := builder.Select(columns...).From(ms.TableName).Where(cond).ToSQL()
+	query, args, err := builder.Select(columns...).From(EscapeIdentifier(ms.TableName)).Where(cond).ToSQL()
 	if err != nil {
 		return found, err
 	}

@@ -68,3 +68,77 @@ func Test_Scan(t *testing.T) {
 		assert.EqualValues(t, 240, rows[1].GameEmbedData.Height)
 	})
 }
+
+// every field type automigrate accepts must survive a save/scan round trip —
+// uint kinds and non-*int64/*float64 pointers used to panic in Scan
+func Test_ScanTypeMatrix(t *testing.T) {
+	type Label string
+
+	type Gizmo struct {
+		ID int64
+
+		U   uint
+		U8  uint8
+		U32 uint32
+		U64 uint64
+		I32 int32
+		F32 float32
+		L   Label
+
+		PI   *int
+		PI32 *int32
+		PI64 *int64
+		PU   *uint
+		PF32 *float32
+		PB   *bool
+		PS   *string
+		PL   *Label
+	}
+
+	pi := int(-4)
+	pi32 := int32(-32)
+	pi64 := int64(1 << 40)
+	pu := uint(7)
+	pf32 := float32(2.5)
+	pb := true
+	ps := "hello"
+	pl := Label("tag")
+
+	withContext(t, []any{&Gizmo{}}, func(conn *sqlite.Conn, c *hades.Context) {
+		in := &Gizmo{
+			ID: 1,
+
+			U:   3,
+			U8:  200,
+			U32: 1 << 30,
+			U64: 1 << 40,
+			I32: -1234,
+			F32: 1.5,
+			L:   "named",
+
+			PI:   &pi,
+			PI32: &pi32,
+			PI64: &pi64,
+			PU:   &pu,
+			PF32: &pf32,
+			PB:   &pb,
+			PS:   &ps,
+			PL:   &pl,
+		}
+		mtest.Must(t, c.Save(conn, in))
+
+		var out Gizmo
+		found, err := c.SelectOne(conn, &out, builder.Eq{"id": 1})
+		mtest.Must(t, err)
+		assert.True(t, found)
+		assert.EqualValues(t, in, &out)
+
+		// nil pointers round-trip as NULL
+		mtest.Must(t, c.Save(conn, &Gizmo{ID: 2}))
+		var out2 Gizmo
+		found, err = c.SelectOne(conn, &out2, builder.Eq{"id": 2})
+		mtest.Must(t, err)
+		assert.True(t, found)
+		assert.EqualValues(t, &Gizmo{ID: 2}, &out2)
+	})
+}
