@@ -385,8 +385,8 @@ func Test_AutoMigratePreservesData(t *testing.T) {
 	}
 }
 
-// "references" (pluralized from Reference) is an SQL keyword: creating,
-// rebuilding, and re-filling the table must quote the table name everywhere
+// Reference's table name "references" is an SQL keyword and must be
+// quoted everywhere
 func Test_AutoMigrateKeywordTableName(t *testing.T) {
 	dbpool, err := sqlitex.Open("file:memory:?mode=memory", 0, 10)
 	ordie(err)
@@ -406,8 +406,7 @@ func Test_AutoMigrateKeywordTableName(t *testing.T) {
 		ordie(c.Save(conn, &Reference{ID: 12}))
 	}
 
-	// adding a column forces the rebuild path (CREATE TABLE AS / INSERT
-	// INTO ... SELECT), which interpolates the table name
+	// adding a column forces the rebuild path
 	{
 		type Reference struct {
 			ID    int64

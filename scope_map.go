@@ -45,10 +45,9 @@ func (sm *ScopeMap) ByDBName(dbname string) *Scope {
 	return sm.byDBName[dbname]
 }
 
-// ByModel returns the scope for a model, accepting pointer and value models
-// alike — the same normalization Add applies when registering. Only the
-// type is consulted, so a typed nil pointer is a valid descriptor. Returns
-// nil for untyped nil and unregistered models.
+// ByModel returns the scope for a pointer or value model, matching the
+// normalization Add applies. Only the type is consulted, so a typed nil
+// pointer works. Returns nil for untyped nil and unregistered models.
 func (sm *ScopeMap) ByModel(m any) *Scope {
 	typ := reflect.TypeOf(m)
 	if typ == nil {

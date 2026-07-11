@@ -24,12 +24,9 @@ func (c *Context) AutoMigrate(conn *sqlite.Conn) error {
 }
 
 func (c *Context) AutoMigrateEx(conn *sqlite.Conn, stats *AutoMigrateStats) (err error) {
-	// the whole run is one transaction (per-table savepoints nest inside):
-	// table rebuilds drop secondary indexes together with the table, and
-	// declared indexes are only re-created by ensureIndexes after all
-	// tables are synced — without an enclosing transaction, a failed or
-	// interrupted run would strand already-committed tables without their
-	// indexes (and commit a half-applied multi-table schema change)
+	// run everything in one transaction: table rebuilds drop indexes and
+	// ensureIndexes only re-creates them after all tables are synced, so a
+	// partial run must roll back rather than commit index-less tables
 	defer sqlitex.Save(conn)(&err)
 
 	for _, m := range c.ScopeMap.byDBName {

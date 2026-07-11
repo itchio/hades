@@ -97,10 +97,8 @@ func (c *Context) Scan(stmt *sqlite.Stmt, structFields []*StructField, result re
 			typ = typ.Elem()
 		}
 
-		// pointer fields go through reflect.New(typ) rather than
-		// reflect.ValueOf(&val) so that any width (*int32, *uint, ...) and
-		// named types (*SomeString) are assignable, not just the exact type
-		// of val
+		// pointer fields use reflect.New so all widths and named types
+		// are assignable
 		switch typ.Kind() {
 		case reflect.Int64, reflect.Int32, reflect.Int16, reflect.Int8, reflect.Int:
 			val := stmt.ColumnInt64(i)

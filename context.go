@@ -13,6 +13,11 @@ type Context struct {
 	indexes []IndexSpec
 }
 
+// NewContext builds a context over the given models. Register all models
+// before sharing the context across goroutines: metadata for a type with
+// relationship fields is built lazily on first use and that construction
+// is not goroutine-safe. Squash-only row structs are safe to first-use
+// concurrently.
 func NewContext(models ...any) (*Context, error) {
 	c := &Context{
 		ScopeMap: NewScopeMap(),

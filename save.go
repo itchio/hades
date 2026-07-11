@@ -192,10 +192,8 @@ func (c *Context) Save(conn *sqlite.Conn, rec any, opts ...SaveParam) (err error
 					return fmt.Errorf("Can't save %v has_many %v: value has no primary keys", pri.Type, vri.Type)
 				}
 
-				// the cull identifies child rows by the CHILD's own primary
-				// key (valuePF); rel.AssociationForeign* names the PARENT's
-				// primary key and only coincidentally works when both are
-				// named "id"
+				// cull by the child's own primary key;
+				// rel.AssociationForeign* names the parent's
 				passedPFs := make(map[any]struct{})
 				for i := 0; i < v.Len(); i++ {
 					rec := v.Index(i)

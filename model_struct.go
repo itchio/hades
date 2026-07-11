@@ -493,11 +493,15 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 		}
 	}
 
-	modelStructsMap.Set(reflectType, &modelStruct)
-
 	for _, sf := range modelStruct.StructFields {
 		modelStruct.StructFieldsByName[sf.Name] = sf
 	}
+
+	// publish only once the struct is complete, so a concurrent reader
+	// never sees StructFieldsByName mid-fill. relationship fields are still
+	// set by deferred closures after this: the early publish stops
+	// recursion on mutually-referential models. see NewContext
+	modelStructsMap.Set(reflectType, &modelStruct)
 
 	return &modelStruct
 }

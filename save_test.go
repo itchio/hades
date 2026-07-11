@@ -40,8 +40,7 @@ func Test_Save(t *testing.T) {
 	})
 }
 
-// a primary key column named after an SQL keyword must survive the upsert
-// path, which interpolates PK names into ON CONFLICT(...)
+// a keyword primary key column must survive ON CONFLICT(...) in upserts
 func Test_UpsertKeywordPrimaryKey(t *testing.T) {
 	type Setting struct {
 		Group string `hades:"primary_key"`
@@ -50,7 +49,7 @@ func Test_UpsertKeywordPrimaryKey(t *testing.T) {
 
 	withContext(t, []any{&Setting{}}, func(conn *sqlite.Conn, c *hades.Context) {
 		mtest.Must(t, c.Save(conn, &Setting{Group: "display", Val: "dark"}))
-		// second save of the same PK exercises ON CONFLICT("group") DO UPDATE
+		// saving the same PK again exercises ON CONFLICT("group") DO UPDATE
 		mtest.Must(t, c.Save(conn, &Setting{Group: "display", Val: "light"}))
 
 		var out Setting

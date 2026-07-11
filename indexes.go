@@ -29,12 +29,11 @@ type IndexSpec struct {
 }
 
 // IndexName returns the name of the index in SQLite. The name encodes the
-// table and column list, so changing a declaration normally retires the old
-// index and creates a new one on the next AutoMigrate. The encoding is not
-// injective (identifiers may themselves contain "__"), which is why
-// DeclareIndex rejects same-name declarations with different definitions,
-// and ensureIndexes verifies an existing index's actual columns instead of
-// trusting its name.
+// table and column list, so changing a declaration retires the old index
+// and creates a new one on the next AutoMigrate. The encoding is not
+// injective (identifiers may contain "__"), so the name is never trusted:
+// DeclareIndex rejects same-name declarations and ensureIndexes checks the
+// actual table and columns.
 func (spec IndexSpec) IndexName() string {
 	return managedIndexPrefix + spec.TableName + "__" + strings.Join(spec.Columns, "__")
 }
@@ -70,8 +69,7 @@ func (c *Context) DeclareIndex(model any, columns ...string) error {
 		seen[col] = true
 	}
 
-	// clone: the caller may alias and later mutate a variadic slice, which
-	// would bypass the validation above
+	// clone so the caller mutating the slice can't bypass validation
 	spec := IndexSpec{TableName: tableName, Columns: slices.Clone(columns)}
 	for _, other := range c.indexes {
 		if other.IndexName() == spec.IndexName() {
@@ -80,7 +78,7 @@ func (c *Context) DeclareIndex(model any, columns ...string) error {
 				return nil
 			}
 			return fmt.Errorf(
-				"DeclareIndex: %q on table %q collides with declaration %v on table %q — identifiers containing \"__\" produce ambiguous index names",
+				"DeclareIndex: %q on table %q collides with declaration %v on table %q (identifiers containing \"__\" produce ambiguous index names)",
 				spec.IndexName(), tableName, other.Columns, other.TableName)
 		}
 	}
@@ -146,9 +144,8 @@ func (c *Context) ensureIndexes(conn *sqlite.Conn, stats *AutoMigrateStats) (err
 		name := spec.IndexName()
 		declared[name] = true
 		if tblName, ok := existing[name]; ok {
-			// names are not injective encodings of the definition (see
-			// IndexName), and the database may have drifted; trust the
-			// actual table and indexed columns, not the name
+			// check the actual table and columns, not the name (see
+			// IndexName)
 			if tblName == spec.TableName {
 				actualCols, err := c.indexColumns(conn, name)
 				if err != nil {

@@ -169,9 +169,8 @@ func Test_HasManyThorough(t *testing.T) {
 	assert.EqualValues(t, 2, traitCount, "only the traist we want should exist after last save")
 }
 
-// AssocReplace must cull by the CHILD's own primary key; it used to use the
-// parent's PK name against the child table, which only worked when both
-// models named their key "id"
+// AssocReplace must cull by the child's own primary key, which only
+// matches the parent's when both are named "id"
 func Test_HasManyReplaceCustomPrimaryKey(t *testing.T) {
 	type Member struct {
 		Nickname string `hades:"primary_key"`

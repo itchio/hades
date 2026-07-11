@@ -119,7 +119,7 @@ func Test_AutoMigrateRollsBackOnFailure(t *testing.T) {
 	}
 
 	// second run: articles gains a column (forcing a rebuild that drops its
-	// index), but another model fails to sync — everything must roll back
+	// index), but another model fails to sync; everything must roll back
 	{
 		type Article struct {
 			ID       int64
@@ -164,10 +164,9 @@ func Test_AutoMigrateRollsBackOnFailure(t *testing.T) {
 	}
 }
 
-// identifiers taken from sqlite_master are interpolated into DROP INDEX, so
-// a hostile or hand-created name in the managed namespace must round-trip
-// through EscapeIdentifier instead of wedging every future AutoMigrate on a
-// syntax error
+// index names read from sqlite_master are interpolated into DROP INDEX
+// and must be escaped, or a hand-created name with special characters makes
+// every AutoMigrate fail
 func Test_AutoMigratePrunesQuotedNames(t *testing.T) {
 	dbpool, err := sqlitex.Open("file:memory:?mode=memory", 0, 10)
 	ordie(err)
@@ -352,9 +351,8 @@ func Test_AutoMigrateIndexes(t *testing.T) {
 		assert.EqualValues(t, []string{"author_id"}, cols)
 	}
 
-	// index names are database-global: an index bearing a declared name but
-	// living on a different table (even with matching columns) must be
-	// rebuilt on the declared table, not accepted by name
+	// index names are database-global: a matching name on a different
+	// table must be rebuilt on the declared table
 	{
 		type Article struct {
 			ID       int64
@@ -371,8 +369,7 @@ func Test_AutoMigrateIndexes(t *testing.T) {
 		ordie(err)
 		c.Logger = testLogger(t)
 
-		// sync schema first (comments gains author_id via rebuild), then
-		// plant the rogue index so no table rebuild can drop it
+		// sync schema first so the rogue index survives table rebuilds
 		ordie(c.AutoMigrate(conn))
 		ordie(c.ExecRaw(conn, "CREATE INDEX hades_idx_articles__author_id ON comments (author_id)", nil))
 

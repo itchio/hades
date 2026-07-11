@@ -69,8 +69,7 @@ func Test_Scan(t *testing.T) {
 	})
 }
 
-// every field type automigrate accepts must survive a save/scan round trip —
-// uint kinds and non-*int64/*float64 pointers used to panic in Scan
+// every field type automigrate accepts must survive a save/scan round trip
 func Test_ScanTypeMatrix(t *testing.T) {
 	type Label string
 
