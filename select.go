@@ -12,7 +12,7 @@ func (c *Context) Select(conn *sqlite.Conn, result any, cond builder.Cond, searc
 	resultVal := reflect.ValueOf(result)
 	originalType := resultVal.Type()
 
-	if resultVal.Type().Kind() != reflect.Ptr {
+	if resultVal.Type().Kind() != reflect.Pointer {
 		return fmt.Errorf("Select expects results to be a *[]Model, but it got a %v", originalType)
 	}
 	resultVal = resultVal.Elem()
@@ -59,7 +59,7 @@ func (c *Context) SelectOne(conn *sqlite.Conn, result any, cond builder.Cond) (b
 	originalType := resultVal.Type()
 	modelType := originalType
 
-	if resultVal.Type().Kind() != reflect.Ptr {
+	if resultVal.Type().Kind() != reflect.Pointer {
 		return found, fmt.Errorf("SelectOne expects results to be a *Model, but it got a %v", originalType)
 	}
 	resultVal = resultVal.Elem()

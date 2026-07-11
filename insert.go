@@ -10,7 +10,7 @@ import (
 func (scope *Scope) ToEq(rec reflect.Value) builder.Eq {
 	recEl := rec
 
-	if recEl.Type().Kind() == reflect.Ptr {
+	if recEl.Type().Kind() == reflect.Pointer {
 		recEl = recEl.Elem()
 	}
 

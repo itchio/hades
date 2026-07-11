@@ -118,7 +118,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 	}
 
 	reflectType := reflect.ValueOf(scope.Value).Type()
-	for reflectType.Kind() == reflect.Slice || reflectType.Kind() == reflect.Ptr {
+	for reflectType.Kind() == reflect.Slice || reflectType.Kind() == reflect.Pointer {
 		reflectType = reflectType.Elem()
 	}
 
@@ -161,7 +161,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 				}
 
 				indirectType := fieldStruct.Type
-				for indirectType.Kind() == reflect.Ptr {
+				for indirectType.Kind() == reflect.Pointer {
 					indirectType = indirectType.Elem()
 				}
 
@@ -190,7 +190,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 								associationForeignKeys = strings.Split(foreignKey, ",")
 							}
 
-							for elemType.Kind() == reflect.Slice || elemType.Kind() == reflect.Ptr {
+							for elemType.Kind() == reflect.Slice || elemType.Kind() == reflect.Pointer {
 								elemType = elemType.Elem()
 							}
 
@@ -291,8 +291,8 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 										// generate association foreign keys from foreign keys
 										if len(associationForeignKeys) == 0 {
 											for _, foreignKey := range foreignKeys {
-												if strings.HasPrefix(foreignKey, associationType) {
-													associationForeignKey := strings.TrimPrefix(foreignKey, associationType)
+												if after, ok0 := strings.CutPrefix(foreignKey, associationType); ok0 {
+													associationForeignKey := after
 													if foreignField := getForeignField(associationForeignKey, modelStruct.StructFields); foreignField != nil {
 														associationForeignKeys = append(associationForeignKeys, associationForeignKey)
 													}
@@ -376,8 +376,8 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 									// generate association foreign keys from foreign keys
 									if len(associationForeignKeys) == 0 {
 										for _, foreignKey := range foreignKeys {
-											if strings.HasPrefix(foreignKey, associationType) {
-												associationForeignKey := strings.TrimPrefix(foreignKey, associationType)
+											if after, ok0 := strings.CutPrefix(foreignKey, associationType); ok0 {
+												associationForeignKey := after
 												if foreignField := getForeignField(associationForeignKey, modelStruct.StructFields); foreignField != nil {
 													associationForeignKeys = append(associationForeignKeys, associationForeignKey)
 												}
@@ -435,8 +435,8 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 									// generate foreign keys & association foreign keys
 									if len(associationForeignKeys) == 0 {
 										for _, foreignKey := range foreignKeys {
-											if strings.HasPrefix(foreignKey, field.Name) {
-												associationForeignKey := strings.TrimPrefix(foreignKey, field.Name)
+											if after, ok0 := strings.CutPrefix(foreignKey, field.Name); ok0 {
+												associationForeignKey := after
 												if foreignField := getForeignField(associationForeignKey, toFields); foreignField != nil {
 													associationForeignKeys = append(associationForeignKeys, associationForeignKey)
 												}

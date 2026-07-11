@@ -144,7 +144,7 @@ func (c *Context) createTable(conn *sqlite.Conn, ms *ModelStruct) error {
 	err := ms.EachNormalField(func(sf *StructField) error {
 		var sqliteType string
 		typ := sf.Struct.Type
-		if typ.Kind() == reflect.Ptr {
+		if typ.Kind() == reflect.Pointer {
 			typ = typ.Elem()
 		}
 

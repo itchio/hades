@@ -32,7 +32,7 @@ func (scope *Scope) Fields() []*Field {
 			if isStruct {
 				fieldValue := indirectScopeValue
 				for _, name := range structField.Names {
-					if fieldValue.Kind() == reflect.Ptr && fieldValue.IsNil() {
+					if fieldValue.Kind() == reflect.Pointer && fieldValue.IsNil() {
 						fieldValue.Set(reflect.New(fieldValue.Type().Elem()))
 					}
 					fieldValue = reflect.Indirect(fieldValue).FieldByName(name)

@@ -25,11 +25,7 @@ func (c *Context) fetchPagedByPK(conn *sqlite.Conn, PKDBName string, keys []any,
 
 	for len(remainingItems) > 0 {
 		var pageSize int
-		if len(remainingItems) > maxSqlVars {
-			pageSize = maxSqlVars
-		} else {
-			pageSize = len(remainingItems)
-		}
+		pageSize = min(len(remainingItems), maxSqlVars)
 
 		pageAddr := reflect.New(sliceType)
 		cond := builder.In(EscapeIdentifier(PKDBName), remainingItems[:pageSize]...)

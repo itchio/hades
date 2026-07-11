@@ -128,7 +128,7 @@ func (ri *RecordInfo) String() string {
 type RecordInfoMap map[reflect.Type]*RecordInfo
 
 func (c *Context) WalkType(riMap RecordInfoMap, field AssocField, atyp reflect.Type) (*RecordInfo, error) {
-	if atyp.Kind() != reflect.Ptr {
+	if atyp.Kind() != reflect.Pointer {
 		return nil, fmt.Errorf("WalkType expects a *Model type, got %v", atyp)
 	}
 	if atyp.Elem().Kind() != reflect.Struct {
@@ -161,7 +161,7 @@ func (c *Context) WalkType(riMap RecordInfoMap, field AssocField, atyp reflect.T
 		if fieldTyp.Kind() == reflect.Slice {
 			fieldTyp = fieldTyp.Elem()
 		}
-		if fieldTyp.Kind() != reflect.Ptr {
+		if fieldTyp.Kind() != reflect.Pointer {
 			return nil, fmt.Errorf("visitField expects a Slice of Ptr, or a Ptr, but got %v", sf.Struct.Type)
 		}
 

@@ -33,7 +33,7 @@ func (field *Field) Set(value any) (err error) {
 		if reflectValue.Type().ConvertibleTo(fieldValue.Type()) {
 			fieldValue.Set(reflectValue.Convert(fieldValue.Type()))
 		} else {
-			if fieldValue.Kind() == reflect.Ptr {
+			if fieldValue.Kind() == reflect.Pointer {
 				if fieldValue.IsNil() {
 					fieldValue.Set(reflect.New(field.Struct.Type.Elem()))
 				}

@@ -10,7 +10,7 @@ func DBValue(x any) any {
 	value := reflect.ValueOf(x)
 	wasPtr := false
 
-	if typ.Kind() == reflect.Ptr {
+	if typ.Kind() == reflect.Pointer {
 		if value.IsNil() {
 			return nil
 		}

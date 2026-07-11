@@ -85,7 +85,7 @@ func (c *Context) Scan(stmt *sqlite.Stmt, structFields []*StructField, result re
 
 		colTyp := stmt.ColumnType(i)
 
-		if typ.Kind() == reflect.Ptr {
+		if typ.Kind() == reflect.Pointer {
 			wasPtr = true
 			if colTyp == sqlite.SQLITE_NULL {
 				field.Set(reflect.Zero(field.Type()))

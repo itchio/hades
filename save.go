@@ -25,7 +25,7 @@ func (c *Context) Save(conn *sqlite.Conn, rec any, opts ...SaveParam) (err error
 	if valtyp.Kind() == reflect.Slice {
 		valtyp = valtyp.Elem()
 	}
-	if valtyp.Kind() != reflect.Ptr {
+	if valtyp.Kind() != reflect.Pointer {
 		return fmt.Errorf("Save expects a []*Model or a *Model, but it was passed a %v instead", val.Type())
 	}
 
@@ -111,7 +111,7 @@ func (c *Context) Save(conn *sqlite.Conn, rec any, opts ...SaveParam) (err error
 			}
 		}
 
-		if v.Kind() != reflect.Ptr {
+		if v.Kind() != reflect.Pointer {
 			return fmt.Errorf("expected a pointer, but got with %v", v)
 		}
 		vs := v.Elem()
@@ -126,7 +126,7 @@ func (c *Context) Save(conn *sqlite.Conn, rec any, opts ...SaveParam) (err error
 				continue
 			}
 
-			if child.Kind() == reflect.Ptr && child.IsNil() {
+			if child.Kind() == reflect.Pointer && child.IsNil() {
 				continue
 			}
 

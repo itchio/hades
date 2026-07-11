@@ -25,7 +25,7 @@ func (c *Context) Preload(conn *sqlite.Conn, rec any, opts ...PreloadParam) erro
 		}
 		valtyp = valtyp.Elem()
 	}
-	if valtyp.Kind() != reflect.Ptr {
+	if valtyp.Kind() != reflect.Pointer {
 		return fmt.Errorf("Preload expects a []*Model or *Model, but it was passed a %v instead", val.Type())
 	}
 
@@ -46,7 +46,7 @@ func (c *Context) Preload(conn *sqlite.Conn, rec any, opts ...PreloadParam) erro
 		if ptyp.Kind() == reflect.Slice {
 			ptyp = ptyp.Elem()
 		}
-		if ptyp.Kind() != reflect.Ptr {
+		if ptyp.Kind() != reflect.Pointer {
 			return fmt.Errorf("walk expects a []*Model or *Model, but it was passed a %v instead", p.Type())
 		}
 

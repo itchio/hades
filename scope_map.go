@@ -20,7 +20,7 @@ func NewScopeMap() *ScopeMap {
 func (sm *ScopeMap) Add(c *Context, m any) error {
 	val := reflect.ValueOf(m)
 
-	if val.Type().Kind() == reflect.Ptr {
+	if val.Type().Kind() == reflect.Pointer {
 		val = val.Elem()
 	}
 
@@ -54,7 +54,7 @@ func (sm *ScopeMap) ByModel(m any) *Scope {
 	if typ == nil {
 		return nil
 	}
-	if typ.Kind() == reflect.Ptr {
+	if typ.Kind() == reflect.Pointer {
 		typ = typ.Elem()
 	}
 	return sm.byType[reflect.PtrTo(typ)]
