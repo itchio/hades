@@ -43,5 +43,9 @@ func (scope *Scope) ToEq(rec reflect.Value) builder.Eq {
 
 func (c *Context) Insert(conn *sqlite.Conn, scope *Scope, rec reflect.Value) error {
 	eq := scope.ToEq(rec)
-	return c.Exec(conn, builder.Insert(eq).Into(EscapeIdentifier(scope.TableName())), nil)
+	query, args, err := builder.Insert(eq).Into(EscapeIdentifier(scope.TableName())).ToSQL()
+	if err != nil {
+		return err
+	}
+	return c.execWrite(conn, scope.TableName(), query, args...)
 }

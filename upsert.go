@@ -53,5 +53,5 @@ func (c *Context) Upsert(conn *sqlite.Conn, scope *Scope, rec reflect.Value) err
 			strings.Join(sets, ","),
 		)
 	}
-	return c.ExecRaw(conn, sql, nil, args...)
+	return c.execWrite(conn, scope.TableName(), sql, args...)
 }

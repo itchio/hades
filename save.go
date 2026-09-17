@@ -13,6 +13,8 @@ type AllEntities map[reflect.Type]EntityMap
 type EntityMap []any
 
 func (c *Context) Save(conn *sqlite.Conn, rec any, opts ...SaveParam) (err error) {
+	// deferred first so it runs last, once the savepoint is released
+	defer c.batchWrites(conn)(&err)
 	defer sqlitex.Save(conn)(&err)
 
 	var params saveParams
@@ -237,7 +239,7 @@ func (c *Context) Save(conn *sqlite.Conn, rec any, opts ...SaveParam) (err error
 				}
 
 				for _, pf := range removedPFs {
-					err := c.ExecRaw(conn, deleteQuery, nil, parentPK.Interface(), pf)
+					err := c.execWrite(conn, vri.ModelStruct.TableName, deleteQuery, parentPK.Interface(), pf)
 					if err != nil {
 						return err
 					}

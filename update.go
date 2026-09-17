@@ -33,5 +33,9 @@ func (c *Context) Update(conn *sqlite.Conn, model any, where WhereCond, updates 
 
 	tableName := scope.TableName()
 	b := builder.Update(updates...).Where(where.Cond()).From(EscapeIdentifier(tableName))
-	return c.Exec(conn, b, nil)
+	query, args, err := b.ToSQL()
+	if err != nil {
+		return err
+	}
+	return c.execWrite(conn, tableName, query, args...)
 }

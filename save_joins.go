@@ -38,7 +38,7 @@ func (c *Context) saveJoins(conn *sqlite.Conn, mode AssocMode, mtm *ManyToMany) 
 				}
 			} else {
 				// create our own many to many record
-				err := c.ExecRaw(conn, upsertQuery, nil,
+				err := c.execWrite(conn, mtm.JoinTable, upsertQuery,
 					sourceKey, jr.DestinKey,
 				)
 				if err != nil {
@@ -50,7 +50,7 @@ func (c *Context) saveJoins(conn *sqlite.Conn, mode AssocMode, mtm *ManyToMany) 
 		if mode == AssocModeReplace {
 			// this essentially clears all associated records
 			if len(joinRecs) == 0 {
-				err := c.ExecRaw(conn, deleteAllQuery, nil, sourceKey)
+				err := c.execWrite(conn, mtm.JoinTable, deleteAllQuery, sourceKey)
 				if err != nil {
 					return err
 				}
@@ -91,7 +91,7 @@ func (c *Context) saveJoins(conn *sqlite.Conn, mode AssocMode, mtm *ManyToMany) 
 			}
 
 			for _, dk := range removedDKs {
-				err := c.ExecRaw(conn, deleteQuery, nil, sourceKey, dk)
+				err := c.execWrite(conn, mtm.JoinTable, deleteQuery, sourceKey, dk)
 				if err != nil {
 					return err
 				}

@@ -22,5 +22,9 @@ func (c *Context) Delete(conn *sqlite.Conn, model any, cond builder.Cond) error 
 	}
 
 	b := builder.Delete(cond).From(EscapeIdentifier(scope.TableName()))
-	return c.Exec(conn, b, nil)
+	query, args, err := b.ToSQL()
+	if err != nil {
+		return err
+	}
+	return c.execWrite(conn, scope.TableName(), query, args...)
 }
