@@ -2,7 +2,7 @@ package hades
 
 import "reflect"
 
-// Scope contain current operation's information when you perform any operation on the database
+// Scope contains current operation's information when you perform any operation on the database
 type Scope struct {
 	Value  any
 	ctx    *Context
@@ -76,7 +76,7 @@ func (scope *Scope) PrimaryFields() (fields []*Field) {
 	return fields
 }
 
-// PrimaryField return scope's main primary field, if defined more that one primary fields, will return the one having column name `id` or the first one
+// PrimaryField return scope's main primary field, if defined more than one primary fields, will return the one having column name `id` or the first one
 func (scope *Scope) PrimaryField() *Field {
 	if primaryFields := scope.GetModelStruct().PrimaryFields; len(primaryFields) > 0 {
 		if len(primaryFields) > 1 {

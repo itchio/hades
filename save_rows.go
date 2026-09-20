@@ -10,10 +10,10 @@ import (
 )
 
 func (c *Context) saveRows(conn *sqlite.Conn, mode AssocMode, inputIface any) error {
-	// inputIFace is a `[]any`
+	// inputIface is a `[]any`
 	input := reflect.ValueOf(inputIface)
 	if input.Kind() != reflect.Slice {
-		return errors.New("diff needs a slice")
+		return errors.New("saveRows needs a slice")
 	}
 
 	if input.Len() == 0 {

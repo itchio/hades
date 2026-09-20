@@ -37,11 +37,11 @@ func (c *Context) NewManyToMany(JoinTable string, SourceForeignKeys, Destination
 	}
 
 	if len(SourceForeignKeys) != 1 {
-		return nil, fmt.Errorf("For join table %s, expected 1 source foreign keys but got %d",
+		return nil, fmt.Errorf("For join table %s, expected 1 source foreign key but got %d",
 			JoinTable, len(SourceForeignKeys))
 	}
 	if len(DestinationForeignKeys) != 1 {
-		return nil, fmt.Errorf("For join table %s, expected 1 destination foreign keys but got %d",
+		return nil, fmt.Errorf("For join table %s, expected 1 destination foreign key but got %d",
 			JoinTable, len(DestinationForeignKeys))
 	}
 
