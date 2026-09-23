@@ -142,6 +142,7 @@ func Test_AutoMigrateAllValidTypes(t *testing.T) {
 		Alive     bool
 		HeartRate float64
 		BornAt    time.Time
+		Aliases   []string
 		Whatever  struct {
 			Ohey        string
 			ThisIsValid int64
@@ -159,7 +160,7 @@ func Test_AutoMigrateAllValidTypes(t *testing.T) {
 	pti, err := c.PragmaTableInfo(conn, "humanoids")
 	ordie(err)
 
-	assert.EqualValues(t, 5, len(pti))
+	assert.EqualValues(t, 6, len(pti))
 
 	assert.EqualValues(t, "id", pti[0].Name)
 	assert.EqualValues(t, "INTEGER", pti[0].Type)
@@ -185,6 +186,11 @@ func Test_AutoMigrateAllValidTypes(t *testing.T) {
 	assert.EqualValues(t, "DATETIME", pti[4].Type)
 	assert.False(t, pti[4].PrimaryKey)
 	assert.False(t, pti[4].NotNull)
+
+	assert.EqualValues(t, "aliases", pti[5].Name)
+	assert.EqualValues(t, "TEXT", pti[5].Type)
+	assert.False(t, pti[5].PrimaryKey)
+	assert.False(t, pti[5].NotNull)
 
 	tim := time.Now()
 	h1 := &Humanoid{

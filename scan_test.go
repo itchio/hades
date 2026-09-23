@@ -1,6 +1,7 @@
 package hades_test
 
 import (
+	"encoding/json"
 	"testing"
 
 	"crawshaw.io/sqlite"
@@ -92,6 +93,10 @@ func Test_ScanTypeMatrix(t *testing.T) {
 		PB   *bool
 		PS   *string
 		PL   *Label
+
+		Tags  []string
+		Raw   json.RawMessage
+		PTags *[]int
 	}
 
 	pi := int(-4)
@@ -102,6 +107,7 @@ func Test_ScanTypeMatrix(t *testing.T) {
 	pb := true
 	ps := "hello"
 	pl := Label("tag")
+	ptags := []int{1, 2, 3}
 
 	withContext(t, []any{&Gizmo{}}, func(conn *sqlite.Conn, c *hades.Context) {
 		in := &Gizmo{
@@ -123,6 +129,10 @@ func Test_ScanTypeMatrix(t *testing.T) {
 			PB:   &pb,
 			PS:   &ps,
 			PL:   &pl,
+
+			Tags:  []string{"linux-amd64", "rom:gba"},
+			Raw:   json.RawMessage(`[{"path":"game.exe","flavor":"windows"}]`),
+			PTags: &ptags,
 		}
 		mtest.Must(t, c.Save(conn, in))
 
@@ -132,12 +142,26 @@ func Test_ScanTypeMatrix(t *testing.T) {
 		assert.True(t, found)
 		assert.EqualValues(t, in, &out)
 
-		// nil pointers round-trip as NULL
+		// nil pointers and nil slices round-trip as NULL
 		mtest.Must(t, c.Save(conn, &Gizmo{ID: 2}))
 		var out2 Gizmo
 		found, err = c.SelectOne(conn, &out2, builder.Eq{"id": 2})
 		mtest.Must(t, err)
 		assert.True(t, found)
 		assert.EqualValues(t, &Gizmo{ID: 2}, &out2)
+
+		// empty slices stay distinct from nil
+		mtest.Must(t, c.Save(conn, &Gizmo{ID: 3, Tags: []string{}, Raw: json.RawMessage(`[]`)}))
+		var out3 Gizmo
+		found, err = c.SelectOne(conn, &out3, builder.Eq{"id": 3})
+		mtest.Must(t, err)
+		assert.True(t, found)
+		assert.NotNil(t, out3.Tags)
+		assert.Empty(t, out3.Tags)
+		assert.EqualValues(t, `[]`, string(out3.Raw))
+
+		// invalid JSON is a returned error, not a panic
+		assert.Error(t, c.Save(conn, &Gizmo{ID: 4, Raw: json.RawMessage(`{oops`)}))
+		assert.Error(t, c.Save(conn, &Gizmo{ID: 5, Raw: json.RawMessage{}}))
 	})
 }

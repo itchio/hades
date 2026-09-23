@@ -1,13 +1,14 @@
 package hades
 
 import (
+	"fmt"
 	"reflect"
 
 	"crawshaw.io/sqlite"
 	"xorm.io/builder"
 )
 
-func (scope *Scope) ToEq(rec reflect.Value) builder.Eq {
+func (scope *Scope) ToEq(rec reflect.Value) (builder.Eq, error) {
 	recEl := rec
 
 	if recEl.Type().Kind() == reflect.Pointer {
@@ -20,29 +21,41 @@ func (scope *Scope) ToEq(rec reflect.Value) builder.Eq {
 
 	eq := make(builder.Eq)
 
-	var processField func(sf *StructField, val reflect.Value)
-	processField = func(sf *StructField, val reflect.Value) {
+	var processField func(sf *StructField, val reflect.Value) error
+	processField = func(sf *StructField, val reflect.Value) error {
 		field := val.FieldByName(sf.Name)
 		if sf.IsSquashed {
 			for _, nsf := range sf.SquashedFields {
-				processField(nsf, field)
+				if err := processField(nsf, field); err != nil {
+					return err
+				}
 			}
 		}
 
 		if !sf.IsNormal {
-			return
+			return nil
 		}
-		eq[EscapeIdentifier(sf.DBName)] = DBValue(field.Interface())
+		v, err := DBValue(field.Interface())
+		if err != nil {
+			return fmt.Errorf("field %s of %s: %w", sf.Name, recEl.Type(), err)
+		}
+		eq[EscapeIdentifier(sf.DBName)] = v
+		return nil
 	}
 
 	for _, sf := range scope.GetModelStruct().StructFields {
-		processField(sf, recEl)
+		if err := processField(sf, recEl); err != nil {
+			return nil, err
+		}
 	}
-	return eq
+	return eq, nil
 }
 
 func (c *Context) Insert(conn *sqlite.Conn, scope *Scope, rec reflect.Value) error {
-	eq := scope.ToEq(rec)
+	eq, err := scope.ToEq(rec)
+	if err != nil {
+		return err
+	}
 	query, args, err := builder.Insert(eq).Into(EscapeIdentifier(scope.TableName())).ToSQL()
 	if err != nil {
 		return err

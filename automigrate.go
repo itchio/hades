@@ -155,6 +155,8 @@ func (c *Context) createTable(conn *sqlite.Conn, ms *ModelStruct) error {
 			sqliteType = "REAL"
 		case reflect.String:
 			sqliteType = "TEXT"
+		case reflect.Slice:
+			sqliteType = "TEXT"
 		case reflect.Struct:
 			if typ == reflect.TypeOf(time.Time{}) {
 				sqliteType = "DATETIME"

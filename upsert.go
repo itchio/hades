@@ -26,7 +26,10 @@ func (scope *Scope) ToSets() []string {
 }
 
 func (c *Context) Upsert(conn *sqlite.Conn, scope *Scope, rec reflect.Value) error {
-	eq := scope.ToEq(rec)
+	eq, err := scope.ToEq(rec)
+	if err != nil {
+		return err
+	}
 
 	b := builder.Insert(eq).Into(EscapeIdentifier(scope.TableName()))
 

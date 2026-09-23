@@ -1,6 +1,7 @@
 package hades
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"time"
@@ -144,6 +145,21 @@ func (c *Context) Scan(stmt *sqlite.Stmt, structFields []*StructField, result re
 				field.Set(ptr)
 			} else {
 				fieldEl.SetString(val)
+			}
+		case reflect.Slice:
+			if colTyp == sqlite.SQLITE_NULL {
+				field.Set(reflect.Zero(field.Type()))
+				break
+			}
+			ptr := reflect.New(typ)
+			err := json.Unmarshal([]byte(stmt.ColumnText(i)), ptr.Interface())
+			if err != nil {
+				return fmt.Errorf("For model %s, decoding JSON for field %s: %w", result.Type(), sf.Name, err)
+			}
+			if wasPtr {
+				field.Set(ptr)
+			} else {
+				fieldEl.Set(ptr.Elem())
 			}
 		case reflect.Struct:
 			if typ == reflect.TypeOf(time.Time{}) {

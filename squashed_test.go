@@ -36,7 +36,8 @@ func Test_SquashedToEq(t *testing.T) {
 	mtest.Must(t, err)
 
 	boneScope := c.NewScope(b)
-	eq := boneScope.ToEq(reflect.ValueOf(b))
+	eq, err := boneScope.ToEq(reflect.ValueOf(b))
+	mtest.Must(t, err)
 
 	// ToEq keys are SQL-ready (escaped) identifiers, not bare column names
 	assert.EqualValues(t, 3, len(eq))
