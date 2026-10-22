@@ -65,7 +65,7 @@ func Assoc(fieldName string, children ...AssocField) AssocField {
 	}
 }
 
-// AssocReplace tells save to save the specified assocation,
+// AssocReplace tells save to save the specified association,
 // and to remove any associated records that are no longer listed
 func AssocReplace(fieldName string, children ...AssocField) AssocField {
 	return &assocField{

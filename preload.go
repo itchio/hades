@@ -37,7 +37,7 @@ func (c *Context) Preload(conn *sqlite.Conn, rec any, opts ...PreloadParam) erro
 	}
 	rootInfo, err := c.WalkType(riMap, rootField, valtyp)
 	if err != nil {
-		return fmt.Errorf("waking type tree: %w", err)
+		return fmt.Errorf("walking type tree: %w", err)
 	}
 
 	var walk func(p reflect.Value, pri *RecordInfo) error

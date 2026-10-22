@@ -114,12 +114,12 @@ func (c *Context) Save(conn *sqlite.Conn, rec any, opts ...SaveParam) (err error
 		}
 
 		if v.Kind() != reflect.Pointer {
-			return fmt.Errorf("expected a pointer, but got with %v", v)
+			return fmt.Errorf("expected a pointer, but got %v", v)
 		}
 		vs := v.Elem()
 
 		if vs.Kind() != reflect.Struct {
-			return fmt.Errorf("expected a struct, but got with %v", v)
+			return fmt.Errorf("expected a struct, but got %v", v)
 		}
 
 		for _, childRi := range vri.Children {
